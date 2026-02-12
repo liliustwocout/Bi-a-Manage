@@ -198,8 +198,8 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
           {localMenu.map(m => (
             <div key={m.id} className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex gap-4 items-center">
               <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center">
-                <span className="material-icons-round text-slate-500">
-                  {m.category === 'Drink' ? 'local_drinking_water' : m.category === 'Food' ? 'restaurant' : 'inventory_2'}
+                <span className="material-icons-round text-slate-500 text-xl">
+                  {m.category === 'Drink' ? 'local_drink' : m.category === 'Food' ? 'restaurant' : 'inventory_2'}
                 </span>
               </div>
               <div className="flex-1 space-y-2">
@@ -614,8 +614,8 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${item.status === 'Out of Stock' ? 'bg-slate-800' : 'bg-primary/10 text-primary'
                       }`}>
-                      <span className="material-icons-round">
-                        {item.category === 'Drink' ? 'local_drinking_water' : item.category === 'Food' ? 'restaurant' : 'inventory_2'}
+                      <span className="material-icons-round text-2xl">
+                        {item.category === 'Drink' ? 'local_drink' : item.category === 'Food' ? 'restaurant' : 'inventory_2'}
                       </span>
                     </div>
                     <div>
@@ -811,9 +811,9 @@ const App = () => {
   const [transactionSearch, setTransactionSearch] = useState('');
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
 
-  const refresh = async () => {
+  const refresh = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       const [tablesData, ratesData, menuData, txData] = await Promise.all([
         DB.getTables(),
         DB.getRates(),
@@ -824,15 +824,17 @@ const App = () => {
       setRates(ratesData);
       setMenu(menuData);
       setTransactions(txData);
-      if (selectedTable) {
-        const updated = tablesData.find(t => t.id === selectedTable.id);
-        if (updated) setSelectedTable(updated);
-      }
+
+      // Sử dụng functional update để tránh bị stale closure (lỗi tự mở lại bàn sau khi đóng)
+      setSelectedTable(prev => {
+        if (!prev) return null;
+        const updated = tablesData.find(t => t.id === prev.id);
+        return updated || null;
+      });
     } catch (err) {
       console.error('Refresh error', err);
-      alert('Lỗi khi tải dữ liệu. Vui lòng kiểm tra kết nối server.');
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
@@ -841,7 +843,7 @@ const App = () => {
 
     (async () => {
       await DB.init();
-      await refresh();
+      await refresh(true);
       interval = window.setInterval(async () => {
         setTick(t => t + 1);
         await refresh();
