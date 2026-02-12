@@ -18,6 +18,11 @@ const pool = mysql.createPool({
   port: parseInt(process.env.DB_PORT || '3306'),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'test', // Chỉ định database ngay từ đầu
+  ssl: {
+    minVersion: 'TLSv1.2',
+    rejectUnauthorized: true
+  },
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -44,14 +49,18 @@ const DB_KEYS = {
 };
 
 async function ensureKvTable() {
-  // Tạo database nếu chưa có
-  await pool.query(
-    `CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
-  );
+  try {
+    // Tạo database nếu chưa có (Có thể lỗi nếu user không có quyền toàn cục)
+    await pool.query(
+      `CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
+    );
+  } catch (e) {
+    console.log('Skip CREATE DATABASE - likely using pre-created DB');
+  }
 
-  // Tạo bảng key-value trong database đó
+  // Tạo bảng key-value trong database đang dùng
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS \`${DB_NAME}\`.kv_store (
+    CREATE TABLE IF NOT EXISTS kv_store (
       id INT AUTO_INCREMENT PRIMARY KEY,
       key_name VARCHAR(255) NOT NULL UNIQUE,
       value LONGTEXT NOT NULL
