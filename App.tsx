@@ -286,8 +286,8 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
   );
 };
 
-const TableModal = ({ table, rates, menu, onClose, onUpdate }: {
-  table: Table, rates: TableRates, menu: MenuItem[], onClose: () => void, onUpdate: () => void
+const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }: {
+  table: Table, rates: TableRates, menu: MenuItem[], onClose: () => void, onUpdate: () => void, onCheckoutSuccess: () => void
 }) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -395,6 +395,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate }: {
 
     // Close modal and go to dashboard instantly
     onClose();
+    onCheckoutSuccess();
 
     // 2. Background Sync
     try {
@@ -804,6 +805,7 @@ const App = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [tick, setTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [transactionSearch, setTransactionSearch] = useState('');
@@ -847,12 +849,16 @@ const App = () => {
     })();
 
     return () => {
-      if (interval !== null) {
-        window.clearInterval(interval);
-      }
+      if (interval !== null) clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -989,7 +995,34 @@ const App = () => {
           menu={menu}
           onClose={() => setSelectedTable(null)}
           onUpdate={refresh}
+          onCheckoutSuccess={() => setShowSuccess(true)}
         />
+      )}
+
+      {showSuccess && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setShowSuccess(false)}
+        >
+          <div
+            className="bg-surface-dark border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl shadow-primary/20 flex flex-col items-center text-center space-y-4 animate-in zoom-in duration-300"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-20 h-20 bg-accent-emerald/10 rounded-full flex items-center justify-center">
+              <span className="material-icons-round text-5xl text-accent-emerald animate-bounce">check_circle</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-white">THANH TOÁN XONG!</h2>
+              <p className="text-slate-400 text-sm font-bold mt-2 italic">Giao dịch đã được lưu vào lịch sử</p>
+            </div>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all"
+            >
+              TIẾP TỤC
+            </button>
+          </div>
+        </div>
       )}
 
       {selectedTransaction && (
