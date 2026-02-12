@@ -5,5 +5,10 @@
             "source": "/api/(.*)",
             "destination": "/api/index.mjs"
         }
-    ]
+    ],
+    "functions": {
+        "api/*.mjs": {
+            "runtime": "vercel-node@latest"
+        }
+    }
 }
