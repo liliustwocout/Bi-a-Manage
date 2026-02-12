@@ -196,8 +196,12 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
       {tab === 'menu' && (localMenu || []).length > 0 && (
         <div className="space-y-3">
           {localMenu.map(m => (
-            <div key={m.id} className="bg-surface-dark p-3 rounded-3xl border border-white/5 flex gap-4 items-center">
-              <img src={m.image} className="w-16 h-16 rounded-2xl object-cover" />
+            <div key={m.id} className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex gap-4 items-center">
+              <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center">
+                <span className="material-icons-round text-slate-500">
+                  {m.category === 'Drink' ? 'local_drinking_water' : m.category === 'Food' ? 'restaurant' : 'inventory_2'}
+                </span>
+              </div>
               <div className="flex-1 space-y-2">
                 <input
                   value={m.name}
@@ -312,6 +316,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate }: {
     : menu.filter(item => item.category === menuCategoryFilter);
 
   const handleStart = async () => {
+    onClose(); // Close instantly for better UX
     await DB.updateTable(table.id, { status: 'PLAYING', startTime: new Date().toISOString() });
     onUpdate();
   };
@@ -374,24 +379,43 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate }: {
   };
 
   const handleCheckout = async () => {
+    // 1. Optimistic Update (Thực hiện hành động ngay lập tức trên UI)
     const tx: Transaction = {
-      id: `#TX-${Date.now().toString().slice(-4)}`,
-      tableName: table.name,
+      id: `TX${Date.now().toString().slice(-6)}`,
+      tableName: table.id,
       startTime: table.startTime || '',
       endTime: new Date().toISOString(),
       duration: `${duration.hrs}h ${duration.mins}m`,
       tableFee,
       serviceFee,
+      orders: [...table.orders],
       total,
       status: 'Paid'
     };
-    await DB.addTransaction(tx);
-    await DB.updateTable(table.id, { status: 'EMPTY', startTime: undefined, orders: [], customerName: undefined, phone: undefined, bookedTime: undefined });
-    onUpdate();
+
+    // Close modal and go to dashboard instantly
     onClose();
+
+    // 2. Background Sync
+    try {
+      await DB.addTransaction(tx);
+      await DB.updateTable(table.id, {
+        status: 'EMPTY',
+        startTime: undefined,
+        orders: [],
+        customerName: undefined,
+        phone: undefined,
+        bookedTime: undefined
+      });
+      onUpdate();
+    } catch (e) {
+      alert("Lỗi khi lưu giao dịch. Dữ liệu có thể chưa được cập nhật chính xác.");
+      console.error(e);
+    }
   };
 
   const handleStartFromBooking = async () => {
+    onClose(); // Đóng ngay để mượt
     await DB.updateTable(table.id, {
       status: 'PLAYING',
       startTime: new Date().toISOString(),
@@ -567,9 +591,9 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate }: {
               ))}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {filteredMenu.length === 0 ? (
-              <div className="col-span-2 text-center py-12 text-slate-600">
+              <div className="text-center py-12 text-slate-600">
                 <span className="material-icons-round text-6xl block mb-4 opacity-20">search_off</span>
                 <p className="text-sm italic font-bold">Không tìm thấy món nào</p>
               </div>
@@ -579,39 +603,36 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate }: {
                   key={item.id}
                   onClick={() => { if (item.status !== 'Out of Stock') { handleAddItem(item); setShowAddMenu(false); } }}
                   className={`
-                    bg-surface-dark-lighter p-4 rounded-[2rem] border-2 transition-all 
-                    active:scale-95 shadow-xl flex flex-col items-center text-center space-y-3
+                    bg-surface-dark-lighter p-4 rounded-3xl border-2 transition-all 
+                    active:scale-95 shadow-lg flex items-center justify-between
                     ${item.status === 'Out of Stock'
-                      ? 'border-red-500/20 opacity-50'
-                      : 'border-white/5 border-b-primary/30'}
+                      ? 'border-red-500/10 opacity-50'
+                      : 'border-white/5 border-l-primary/40'}
                   `}
                 >
-                  <div className="relative w-full aspect-square">
-                    <img src={item.image} className="w-full h-full rounded-3xl object-cover shadow-2xl" />
-                    {item.status === 'Out of Stock' && (
-                      <div className="absolute inset-0 bg-black/60 rounded-3xl flex items-center justify-center">
-                        <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-lg">Hết hàng</span>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${item.status === 'Out of Stock' ? 'bg-slate-800' : 'bg-primary/10 text-primary'
+                      }`}>
+                      <span className="material-icons-round">
+                        {item.category === 'Drink' ? 'local_drinking_water' : item.category === 'Food' ? 'restaurant' : 'inventory_2'}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-100">{item.name}</h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-primary font-black text-xs font-mono">{item.price.toLocaleString()}đ</p>
+                        {item.status === 'Low Stock' && <span className="text-[8px] font-black text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded uppercase">Sắp hết</span>}
                       </div>
-                    )}
-                    {item.status === 'In Stock' && (
-                      <div className="absolute top-2 right-2 bg-emerald-500 w-3 h-3 rounded-full border-2 border-surface-dark-lighter shadow-lg"></div>
-                    )}
+                    </div>
                   </div>
 
-                  <div className="w-full">
-                    <h4 className="text-sm font-black leading-tight h-10 line-clamp-2 text-slate-100">{item.name}</h4>
-                    <p className="text-primary font-black text-base mt-1 font-mono">{item.price.toLocaleString()}đ</p>
-                  </div>
-
-                  <button
-                    disabled={item.status === 'Out of Stock'}
-                    className={`w-full py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${item.status === 'Out of Stock'
-                      ? 'bg-slate-800 text-slate-600'
-                      : 'bg-white/5 text-primary border border-primary/20 group-active:bg-primary group-active:text-white'
-                      }`}
-                  >
-                    CHỌN MÓN
-                  </button>
+                  {item.status === 'Out of Stock' ? (
+                    <span className="text-[10px] font-black text-red-500 uppercase">Hết hàng</span>
+                  ) : (
+                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                      <span className="material-icons-round">add</span>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -782,6 +803,7 @@ const App = () => {
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [tick, setTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [transactionSearch, setTransactionSearch] = useState('');
@@ -917,9 +939,13 @@ const App = () => {
             ) : (
               <div className="space-y-3">
                 {filteredTransactions.map(tx => (
-                  <div key={tx.id} className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex justify-between items-center">
+                  <div
+                    key={tx.id}
+                    onClick={() => setSelectedTransaction(tx)}
+                    className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex justify-between items-center active:scale-95 transition-all tap-highlight-transparent"
+                  >
                     <div>
-                      <p className="font-black text-sm">{tx.tableName}</p>
+                      <p className="font-black text-sm">Bàn {tx.tableName}</p>
                       <p className="text-[10px] font-bold text-slate-500 uppercase">{tx.duration} • {tx.endTime ? new Date(tx.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</p>
                       <p className="text-[8px] text-slate-600 mt-1">{tx.id}</p>
                     </div>
@@ -964,6 +990,71 @@ const App = () => {
           onClose={() => setSelectedTable(null)}
           onUpdate={refresh}
         />
+      )}
+
+      {selectedTransaction && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
+          <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
+            <button onClick={() => setSelectedTransaction(null)} className="p-2 -ml-2 text-slate-400"><span className="material-icons-round text-3xl">close</span></button>
+            <div className="text-center">
+              <h1 className="text-lg font-black uppercase">CHI TIẾT HÓA ĐƠN</h1>
+              <p className="text-[10px] font-bold text-slate-500">{selectedTransaction.id}</p>
+            </div>
+            <div className="w-10"></div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="bg-white/5 p-6 rounded-3xl border border-white/5 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 text-xs">Mã hóa đơn</span>
+                <span className="font-black text-xs uppercase">{selectedTransaction.id}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 text-xs">Bàn</span>
+                <span className="font-black text-xs uppercase">Bàn {selectedTransaction.tableName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 text-xs">Thời gian bắt đầu</span>
+                <span className="font-black text-xs">{new Date(selectedTransaction.startTime).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 text-xs">Thời gian kết thúc</span>
+                <span className="font-black text-xs">{new Date(selectedTransaction.endTime).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 text-xs">Thời lượng</span>
+                <span className="font-black text-xs text-primary">{selectedTransaction.duration}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CHI TIẾT DỊCH VỤ</h3>
+              <div className="bg-white/5 rounded-3xl p-4 border border-white/5 space-y-3">
+                <div className="flex justify-between items-center pb-2 border-b border-white/5 text-[10px] text-slate-500 font-bold uppercase">
+                  <span>Tên món / Tiền bàn</span>
+                  <span>Thành tiền</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold">Tiền bàn ({selectedTransaction.duration})</span>
+                  <span className="text-xs font-black">{selectedTransaction.tableFee.toLocaleString()}đ</span>
+                </div>
+                {selectedTransaction.orders && selectedTransaction.orders.map((o, idx) => (
+                  <div key={idx} className="flex justify-between items-center">
+                    <span className="text-xs text-slate-300">{o.name} <span className="text-slate-500 text-[10px]">x{o.quantity}</span></span>
+                    <span className="text-xs font-black">{(o.price * o.quantity).toLocaleString()}đ</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-primary/10 p-6 rounded-3xl border border-primary/20 flex justify-between items-center">
+              <span className="text-xs font-black uppercase text-primary">TỔNG CỘNG</span>
+              <span className="text-2xl font-black text-primary font-mono">{selectedTransaction.total.toLocaleString()}đ</span>
+            </div>
+          </div>
+          <div className="p-6 pb-12">
+            <button onClick={() => setSelectedTransaction(null)} className="w-full py-4 bg-slate-800 rounded-2xl font-black text-sm text-white">ĐÓNG</button>
+          </div>
+        </div>
       )}
     </div>
   );

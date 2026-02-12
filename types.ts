@@ -48,6 +48,7 @@ export interface Transaction {
   duration: string;
   tableFee: number;
   serviceFee: number;
+  orders: OrderItem[];
   total: number;
   status: 'Paid' | 'Cancelled' | 'Pending';
 }
