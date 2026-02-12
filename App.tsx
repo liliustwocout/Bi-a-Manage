@@ -27,7 +27,7 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto pb-10">
+    <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto pb-32">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black">SƠ ĐỒ BÀN</h2>
         <div className="flex gap-2">
@@ -144,7 +144,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
   };
 
   return (
-    <div className="p-4 h-full overflow-y-auto pb-10 space-y-6">
+    <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-black">QUẢN LÝ HỆ THỐNG</h2>
@@ -313,7 +313,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
       } finally {
         setIsSavingOrders(false);
       }
-    }, 5000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [localOrders, table.id, onUpdate, table.orders]);
@@ -527,7 +527,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-[10px] font-bold text-primary">{localOrders.length} món đã gọi</p>
                       {JSON.stringify(localOrders) !== JSON.stringify(table.orders) && (
-                        <span className="text-[9px] font-black text-yellow-500 animate-pulse">● ĐANG LỜI...</span>
+                        <span className="text-[9px] font-black text-yellow-500 animate-pulse">● ĐANG ĐỢI...</span>
                       )}
                       {isSavingOrders && (
                         <span className="text-[9px] font-black text-emerald-500 animate-pulse uppercase tracking-tighter">● ĐÃ LƯU</span>
@@ -780,7 +780,7 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
     .slice(0, 5);
 
   return (
-    <div className="p-4 h-full overflow-y-auto pb-10 space-y-6">
+    <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
       <h2 className="text-2xl font-black">THỐNG KÊ HÔM NAY</h2>
 
       <div className="grid grid-cols-2 gap-3">
@@ -942,7 +942,7 @@ const App = () => {
         )}
         {!loading && currentView === 'dashboard' && <Dashboard tables={tables} rates={rates} onTableClick={setSelectedTable} />}
         {currentView === 'history' && (
-          <div className="p-4 h-full overflow-y-auto pb-10 space-y-6">
+          <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
             <h2 className="text-2xl font-black">LỊCH SỬ GIAO DỊCH</h2>
 
             <div className="space-y-3">
@@ -999,7 +999,7 @@ const App = () => {
         {currentView === 'settings' && <SettingsView tables={tables} menu={menu} rates={rates} onUpdate={refresh} />}
       </main>
 
-      <nav className="bg-surface-dark/95 backdrop-blur-2xl border-t border-white/5 flex items-center justify-around px-2 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-surface-dark/95 backdrop-blur-2xl border-t border-white/5 flex items-center justify-around px-2 pb-8 pt-2 z-50">
         <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'dashboard' ? 'text-primary' : 'text-slate-600'}`}>
           <span className="material-icons-round text-2xl">grid_view</span>
           <span className="text-[8px] font-black uppercase">SƠ ĐỒ</span>
