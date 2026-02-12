@@ -114,10 +114,12 @@ const INITIAL_MENU = [
   { id: '4', name: 'Thuốc lá 555', price: 35000, category: 'Other', status: 'In Stock', image: 'https://picsum.photos/seed/cig/200' },
 ];
 
+const router = express.Router();
+
 // --- Routes ---
 
 // Khởi tạo dữ liệu lần đầu (seed giống localStorage cũ)
-app.post('/init', async (req, res) => {
+router.post('/init', async (req, res) => {
   try {
     await ensureKvTable();
     const existingTables = await getValue(DB_KEYS.TABLES);
@@ -135,7 +137,7 @@ app.post('/init', async (req, res) => {
 });
 
 // Tables
-app.get('/tables', async (req, res) => {
+router.get('/tables', async (req, res) => {
   try {
     const tables = (await getValue(DB_KEYS.TABLES)) || [];
     res.json(tables);
@@ -145,7 +147,7 @@ app.get('/tables', async (req, res) => {
   }
 });
 
-app.put('/tables', async (req, res) => {
+router.put('/tables', async (req, res) => {
   try {
     const tables = req.body;
     if (!Array.isArray(tables)) {
@@ -160,7 +162,7 @@ app.put('/tables', async (req, res) => {
 });
 
 // Rates
-app.get('/rates', async (req, res) => {
+router.get('/rates', async (req, res) => {
   try {
     const rates = (await getValue(DB_KEYS.RATES)) || INITIAL_RATES;
     res.json(rates);
@@ -170,7 +172,7 @@ app.get('/rates', async (req, res) => {
   }
 });
 
-app.put('/rates', async (req, res) => {
+router.put('/rates', async (req, res) => {
   try {
     const rates = req.body || {};
     await setValue(DB_KEYS.RATES, rates);
@@ -182,7 +184,7 @@ app.put('/rates', async (req, res) => {
 });
 
 // Menu
-app.get('/menu', async (req, res) => {
+router.get('/menu', async (req, res) => {
   try {
     const menu = (await getValue(DB_KEYS.MENU)) || INITIAL_MENU;
     res.json(menu);
@@ -192,7 +194,7 @@ app.get('/menu', async (req, res) => {
   }
 });
 
-app.put('/menu', async (req, res) => {
+router.put('/menu', async (req, res) => {
   try {
     const menu = req.body;
     if (!Array.isArray(menu)) {
@@ -207,7 +209,7 @@ app.put('/menu', async (req, res) => {
 });
 
 // Transactions
-app.get('/transactions', async (req, res) => {
+router.get('/transactions', async (req, res) => {
   try {
     const txs = (await getValue(DB_KEYS.TRANSACTIONS)) || [];
     res.json(txs);
@@ -217,7 +219,7 @@ app.get('/transactions', async (req, res) => {
   }
 });
 
-app.post('/transactions', async (req, res) => {
+router.post('/transactions', async (req, res) => {
   try {
     const tx = req.body;
     const txs = (await getValue(DB_KEYS.TRANSACTIONS)) || [];
@@ -231,7 +233,7 @@ app.post('/transactions', async (req, res) => {
 });
 
 // Reset toàn bộ dữ liệu
-app.post('/reset', async (req, res) => {
+router.post('/reset', async (req, res) => {
   try {
     await ensureKvTable();
     await setValue(DB_KEYS.TABLES, createInitialTables());
@@ -245,9 +247,13 @@ app.post('/reset', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
+router.get('/', (req, res) => {
   res.json({ status: 'CueMaster Pro API running', version: '1.0.0' });
 });
+
+app.use('/api', router);
+// Fallback cho local (vì local có thể không dùng prefix /api nếu access trực tiếp cổng 4000)
+app.use('/', router);
 
 // Export app for Vercel
 export default app;
