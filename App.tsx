@@ -27,7 +27,7 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto pb-32">
+    <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto pb-10">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black">SƠ ĐỒ BÀN</h2>
         <div className="flex gap-2">
@@ -144,7 +144,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
   };
 
   return (
-    <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
+    <div className="p-4 h-full overflow-y-auto pb-10 space-y-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-black">QUẢN LÝ HỆ THỐNG</h2>
@@ -294,6 +294,29 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
   const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<'All' | 'Drink' | 'Food' | 'Other'>('All');
   const [bookingData, setBookingData] = useState({ customerName: '', phone: '', bookedTime: '' });
+  const [localOrders, setLocalOrders] = useState<OrderItem[]>(table.orders);
+  const [isSavingOrders, setIsSavingOrders] = useState(false);
+
+  useEffect(() => {
+    setLocalOrders(table.orders);
+  }, [table.id]); // Re-sync only when switching tables
+
+  useEffect(() => {
+    const hasChanges = JSON.stringify(localOrders) !== JSON.stringify(table.orders);
+    if (!hasChanges) return;
+
+    const timer = setTimeout(async () => {
+      setIsSavingOrders(true);
+      try {
+        await DB.updateTable(table.id, { orders: localOrders });
+        onUpdate();
+      } finally {
+        setIsSavingOrders(false);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [localOrders, table.id, onUpdate, table.orders]);
 
   const startTime = table.startTime ? new Date(table.startTime) : null;
   const now = new Date();
@@ -308,7 +331,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
   const tableFee = table.status === 'PLAYING' ? Math.round(blocks * feePerBlock) : 0;
 
   const duration = table.startTime ? calculateDuration(table.startTime) : { hrs: 0, mins: 0, decimal: 0 };
-  const serviceFee = table.orders.reduce((sum, o) => sum + (o.price * o.quantity), 0);
+  const serviceFee = localOrders.reduce((sum, o) => sum + (o.price * o.quantity), 0);
   const total = tableFee + serviceFee;
 
   const filteredMenu = menuCategoryFilter === 'All'
@@ -348,34 +371,31 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
     onUpdate();
   };
 
-  const handleAddItem = async (item: MenuItem) => {
-    const existing = table.orders.find(o => o.itemId === item.id);
-    let newOrders = [...table.orders];
+  const handleAddItem = (item: MenuItem) => {
+    const existing = localOrders.find(o => o.itemId === item.id);
+    let newOrders = [...localOrders];
     if (existing) {
       newOrders = newOrders.map(o => o.itemId === item.id ? { ...o, quantity: o.quantity + 1 } : o);
     } else {
       newOrders.push({ id: Date.now().toString(), itemId: item.id, name: item.name, quantity: 1, price: item.price });
     }
-    await DB.updateTable(table.id, { orders: newOrders });
-    onUpdate();
+    setLocalOrders(newOrders);
   };
 
-  const handleUpdateOrderQuantity = async (orderId: string, delta: number) => {
-    const newOrders = table.orders.map(o => {
+  const handleUpdateOrderQuantity = (orderId: string, delta: number) => {
+    const newOrders = localOrders.map(o => {
       if (o.id === orderId) {
         const newQuantity = Math.max(0, o.quantity + delta);
         return { ...o, quantity: newQuantity };
       }
       return o;
     }).filter(o => o.quantity > 0);
-    await DB.updateTable(table.id, { orders: newOrders });
-    onUpdate();
+    setLocalOrders(newOrders);
   };
 
-  const handleRemoveOrderItem = async (orderId: string) => {
-    const newOrders = table.orders.filter(o => o.id !== orderId);
-    await DB.updateTable(table.id, { orders: newOrders });
-    onUpdate();
+  const handleRemoveOrderItem = (orderId: string) => {
+    const newOrders = localOrders.filter(o => o.id !== orderId);
+    setLocalOrders(newOrders);
   };
 
   const handleCheckout = async () => {
@@ -388,7 +408,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
       duration: `${duration.hrs}h ${duration.mins}m`,
       tableFee,
       serviceFee,
-      orders: [...table.orders],
+      orders: [...localOrders],
       total,
       status: 'Paid'
     };
@@ -504,7 +524,15 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">DỊCH VỤ</h3>
-                    <p className="text-[10px] font-bold text-primary mt-1">{table.orders.length} món đã gọi</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[10px] font-bold text-primary">{localOrders.length} món đã gọi</p>
+                      {JSON.stringify(localOrders) !== JSON.stringify(table.orders) && (
+                        <span className="text-[9px] font-black text-yellow-500 animate-pulse">● ĐANG LỜI...</span>
+                      )}
+                      {isSavingOrders && (
+                        <span className="text-[9px] font-black text-emerald-500 animate-pulse uppercase tracking-tighter">● ĐÃ LƯU</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <button
@@ -517,10 +545,10 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
               </div>
 
               <div className="space-y-2">
-                {table.orders.length === 0 ? (
+                {localOrders.length === 0 ? (
                   <p className="text-center py-8 text-slate-600 text-xs italic">Chưa gọi dịch vụ</p>
                 ) : (
-                  table.orders.map(order => (
+                  localOrders.map(order => (
                     <div key={order.id} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
                       <div className="flex-1">
                         <p className="text-sm font-bold">{order.name}</p>
@@ -752,7 +780,7 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
     .slice(0, 5);
 
   return (
-    <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
+    <div className="p-4 h-full overflow-y-auto pb-10 space-y-6">
       <h2 className="text-2xl font-black">THỐNG KÊ HÔM NAY</h2>
 
       <div className="grid grid-cols-2 gap-3">
@@ -895,7 +923,7 @@ const App = () => {
       <header className="pt-14 pb-4 px-6 border-b border-white/5 bg-background-dark/80 backdrop-blur-md flex items-center justify-between z-40">
         <div className="flex items-center gap-2">
           <span className="material-icons-round text-primary text-2xl">sports_esports</span>
-          <h1 className="font-black text-base uppercase tracking-tighter italic">CueMaster Pro</h1>
+          <h1 className="font-black text-base uppercase tracking-tighter italic">Lilius</h1>
         </div>
         <div className="flex items-center gap-2 text-[10px] font-black text-accent-emerald bg-emerald-500/10 px-3 py-1 rounded-full">
           <div className="w-1.5 h-1.5 bg-accent-emerald rounded-full animate-pulse"></div>
@@ -914,7 +942,7 @@ const App = () => {
         )}
         {!loading && currentView === 'dashboard' && <Dashboard tables={tables} rates={rates} onTableClick={setSelectedTable} />}
         {currentView === 'history' && (
-          <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
+          <div className="p-4 h-full overflow-y-auto pb-10 space-y-6">
             <h2 className="text-2xl font-black">LỊCH SỬ GIAO DỊCH</h2>
 
             <div className="space-y-3">
@@ -971,7 +999,7 @@ const App = () => {
         {currentView === 'settings' && <SettingsView tables={tables} menu={menu} rates={rates} onUpdate={refresh} />}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-surface-dark/95 backdrop-blur-2xl border-t border-white/5 flex items-center justify-around px-2 pb-8 pt-2 z-50">
+      <nav className="bg-surface-dark/95 backdrop-blur-2xl border-t border-white/5 flex items-center justify-around px-2 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50">
         <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'dashboard' ? 'text-primary' : 'text-slate-600'}`}>
           <span className="material-icons-round text-2xl">grid_view</span>
           <span className="text-[8px] font-black uppercase">SƠ ĐỒ</span>
