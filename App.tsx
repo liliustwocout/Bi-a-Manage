@@ -66,6 +66,33 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
   tables: Table[], menu: MenuItem[], rates: TableRates, onUpdate: () => void
 }) => {
   const [tab, setTab] = useState<'tables' | 'menu' | 'rates'>('tables');
+  const [localMenu, setLocalMenu] = useState<MenuItem[]>(menu);
+  const [localRates, setLocalRates] = useState<TableRates>(rates);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setLocalMenu(menu);
+  }, [menu]);
+
+  useEffect(() => {
+    setLocalRates(rates);
+  }, [rates]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      if (tab === 'menu') {
+        await DB.saveMenu(localMenu);
+      } else if (tab === 'rates') {
+        await DB.saveRates(localRates);
+      }
+      onUpdate();
+    } catch (e) {
+      alert("Lỗi khi lưu dữ liệu");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // CRUD Tables
   const addTable = async () => {
@@ -89,43 +116,48 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
   };
 
   // CRUD Menu
-  const addMenuItem = async () => {
+  const addMenuItem = () => {
     const newItem: MenuItem = {
       id: Date.now().toString(),
       name: 'Món mới',
-      price: 10000,
+      price: 0,
       category: 'Drink',
       status: 'In Stock',
-      image: 'https://picsum.photos/seed/new/200'
+      image: 'https://picsum.photos/seed/food/200'
     };
-    await DB.saveMenu([...menu, newItem]);
-    onUpdate();
+    setLocalMenu([...localMenu, newItem]);
   };
 
-  const updateMenuItem = async (id: string, updates: Partial<MenuItem>) => {
-    const newMenu = menu.map(m => m.id === id ? { ...m, ...updates } : m);
-    await DB.saveMenu(newMenu);
-    onUpdate();
+  const updateMenuItem = (id: string, updates: Partial<MenuItem>) => {
+    setLocalMenu(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
   };
 
-  const deleteMenuItem = async (id: string) => {
+  const deleteMenuItem = (id: string) => {
     if (confirm("Xóa món này?")) {
-      await DB.saveMenu(menu.filter(m => m.id !== id));
-      onUpdate();
+      setLocalMenu(prev => prev.filter(m => m.id !== id));
     }
   };
 
   // Update Rates
-  const updateRate = async (type: keyof TableRates, val: string) => {
-    const newRates = { ...rates, [type]: parseInt(val) || 0 };
-    await DB.saveRates(newRates);
-    onUpdate();
+  const updateRate = (type: keyof TableRates, val: string) => {
+    setLocalRates(prev => ({ ...prev, [type]: parseInt(val) || 0 }));
   };
 
   return (
     <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
       <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-black">QUẢN LÝ HỆ THỐNG</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black">QUẢN LÝ HỆ THỐNG</h2>
+          {(tab === 'menu' || tab === 'rates') && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`px-6 py-2 rounded-xl font-black text-xs transition-all ${isSaving ? 'bg-slate-800 text-slate-500' : 'bg-accent-emerald text-white shadow-lg shadow-emerald-900/20'}`}
+            >
+              {isSaving ? 'ĐANG LƯU...' : 'LƯU THAY ĐỔI'}
+            </button>
+          )}
+        </div>
         <div className="flex bg-slate-900 p-1 rounded-2xl border border-white/5">
           <button onClick={() => setTab('tables')} className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all ${tab === 'tables' ? 'bg-primary text-white' : 'text-slate-500'}`}>BÀN</button>
           <button onClick={() => setTab('menu')} className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all ${tab === 'menu' ? 'bg-primary text-white' : 'text-slate-500'}`}>THỰC ĐƠN</button>
@@ -161,9 +193,9 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
         </div>
       )}
 
-      {tab === 'menu' && (
+      {tab === 'menu' && (localMenu || []).length > 0 && (
         <div className="space-y-3">
-          {menu.map(m => (
+          {localMenu.map(m => (
             <div key={m.id} className="bg-surface-dark p-3 rounded-3xl border border-white/5 flex gap-4 items-center">
               <img src={m.image} className="w-16 h-16 rounded-2xl object-cover" />
               <div className="flex-1 space-y-2">
@@ -217,7 +249,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
             <label className="text-[10px] font-black text-primary uppercase tracking-widest">Làm tròn theo Block (Phút)</label>
             <div className="flex items-center gap-3">
               <select
-                value={rates.billingBlock || 1}
+                value={localRates.billingBlock || 1}
                 onChange={(e) => updateRate('billingBlock', e.target.value)}
                 className="flex-1 bg-slate-900 border-none rounded-xl p-3 font-black text-white focus:ring-primary"
               >
@@ -228,9 +260,6 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
                 <option value="60">Mỗi 60 phút (Block 1h)</option>
               </select>
             </div>
-            <p className="text-[10px] text-slate-500 italic mt-2">
-              * Ví dụ 15p: Chơi 1 giây tính 15p. Chơi 15p 1 giây tính 30p.
-            </p>
           </div>
 
           {(['Pool', 'Carom', 'Snooker', 'VIP'] as Array<keyof TableRates>).map(type => (
@@ -239,7 +268,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
               <div className="flex items-center gap-3">
                 <input
                   type="number"
-                  value={rates[type]}
+                  value={localRates[type]}
                   onChange={(e) => updateRate(type, e.target.value)}
                   className="flex-1 bg-slate-900 border-none rounded-xl p-3 font-mono font-black text-primary focus:ring-primary"
                 />
@@ -577,8 +606,8 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate }: {
                   <button
                     disabled={item.status === 'Out of Stock'}
                     className={`w-full py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${item.status === 'Out of Stock'
-                        ? 'bg-slate-800 text-slate-600'
-                        : 'bg-white/5 text-primary border border-primary/20 group-active:bg-primary group-active:text-white'
+                      ? 'bg-slate-800 text-slate-600'
+                      : 'bg-white/5 text-primary border border-primary/20 group-active:bg-primary group-active:text-white'
                       }`}
                   >
                     CHỌN MÓN
