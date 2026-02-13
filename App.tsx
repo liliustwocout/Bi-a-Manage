@@ -22,7 +22,7 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
       case 'PLAYING': return 'bg-primary border-primary text-white shadow-lg shadow-primary/20';
       case 'BOOKED': return 'bg-yellow-500 border-yellow-500 text-black';
       case 'MAINTENANCE': return 'bg-red-500 border-red-500 text-white';
-      default: return 'bg-surface-dark border-white/5 text-slate-400';
+      default: return 'bg-slate-50 border-slate-200 text-slate-500';
     }
   };
 
@@ -31,10 +31,10 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-black">SƠ ĐỒ BÀN</h2>
         <div className="flex gap-2">
-          <span className="text-xs font-black bg-primary/20 px-3 py-1.5 rounded-full text-primary uppercase tracking-tighter">
+          <span className="text-xs font-black bg-primary/10 px-3 py-1.5 rounded-full text-primary uppercase tracking-tighter">
             {tables.filter(t => t.status === 'PLAYING').length} BẬN
           </span>
-          <span className="text-xs font-black bg-slate-800 px-3 py-1.5 rounded-full text-slate-400 uppercase tracking-tighter">
+          <span className="text-xs font-black bg-slate-100 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-tighter">
             {tables.filter(t => t.status === 'EMPTY').length} TRỐNG
           </span>
         </div>
@@ -163,7 +163,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
             </button>
           )}
         </div>
-        <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-white/5">
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
           <button onClick={() => setTab('tables')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${tab === 'tables' ? 'bg-primary text-white scale-105 shadow-lg' : 'text-slate-500'}`}>BÀN</button>
           <button onClick={() => setTab('menu')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${tab === 'menu' ? 'bg-primary text-white scale-105 shadow-lg' : 'text-slate-500'}`}>MÓN</button>
           <button onClick={() => setTab('rates')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${tab === 'rates' ? 'bg-primary text-white scale-105 shadow-lg' : 'text-slate-500'}`}>GIÁ</button>
@@ -173,7 +173,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
       {tab === 'tables' && (
         <div className="space-y-3">
           {tables.map(t => (
-            <div key={t.id} className="bg-surface-dark p-5 rounded-[2rem] border border-white/5 flex items-center justify-between">
+            <div key={t.id} className="bg-white p-5 rounded-[2rem] border border-slate-200 flex items-center justify-between shadow-sm">
               <div>
                 <p className="font-black text-xl mb-1">Bàn {t.id}</p>
                 <select
@@ -194,15 +194,15 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
               <button onClick={() => deleteTable(t.id)} className="text-accent-red p-3 active:scale-95"><span className="material-icons-round text-2xl">delete</span></button>
             </div>
           ))}
-          <button onClick={addTable} className="w-full py-6 border-2 border-dashed border-slate-800 rounded-[2rem] text-slate-500 font-bold text-base active:bg-white/5 transition-colors">+ THÊM BÀN MỚI</button>
+          <button onClick={addTable} className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 font-bold text-base active:bg-slate-50 transition-colors">+ THÊM BÀN MỚI</button>
         </div>
       )}
 
       {tab === 'menu' && (localMenu || []).length > 0 && (
         <div className="space-y-3">
           {localMenu.map(m => (
-            <div key={m.id} className="bg-surface-dark p-5 rounded-[2rem] border border-white/5 flex gap-4 items-center">
-              <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <div key={m.id} className="bg-white p-5 rounded-[2rem] border border-slate-200 flex gap-4 items-center shadow-sm">
+              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center flex-shrink-0">
                 <span className="material-icons-round text-slate-500 text-3xl">
                   {m.category === 'Drink' ? 'local_drink' : m.category === 'Food' ? 'restaurant' : 'inventory_2'}
                 </span>
@@ -219,13 +219,13 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
                     type="number"
                     value={m.price}
                     onChange={(e) => updateMenuItem(m.id, { price: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-900 border border-white/10 rounded-xl p-2 font-bold text-sm text-primary w-28 focus:ring-1 focus:ring-primary outline-none"
+                    className="bg-slate-50 border border-slate-200 rounded-xl p-2 font-bold text-sm text-primary w-28 focus:ring-1 focus:ring-primary outline-none"
                     placeholder="Giá"
                   />
                   <select
                     value={m.category}
                     onChange={(e) => updateMenuItem(m.id, { category: e.target.value as 'Drink' | 'Food' | 'Other' })}
-                    className="bg-slate-900 border border-white/10 rounded-xl p-2 font-bold text-xs text-white focus:ring-1 focus:ring-primary outline-none"
+                    className="bg-slate-50 border border-slate-200 rounded-xl p-2 font-bold text-xs text-slate-900 focus:ring-1 focus:ring-primary outline-none"
                   >
                     <option value="Drink">Đồ uống</option>
                     <option value="Food">Đồ ăn</option>
@@ -465,8 +465,8 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
-      <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
+    <div className="fixed inset-0 bg-white/80 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
+      <div className="pt-14 px-6 pb-4 border-b border-slate-200 flex items-center justify-between">
         <button onClick={onClose} className="p-2 -ml-2 text-slate-400"><span className="material-icons-round text-3xl">close</span></button>
         <div className="text-center">
           <h1 className="text-2xl font-black uppercase">BÀN {table.id}</h1>
@@ -485,13 +485,13 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
               <span className="material-icons-round text-6xl text-primary">play_arrow</span>
             </div>
             <div>
-              <h3 className="text-xl font-black">BÀN ĐANG TRỐNG</h3>
-              <p className="text-slate-500 text-sm mt-1">Bấm nút bên dưới để bắt đầu tính giờ</p>
+              <h3 className="text-xl font-black text-slate-900">BÀN ĐANG TRỐNG</h3>
+              <p className="text-slate-400 text-sm mt-1 font-bold">Bấm nút bên dưới để bắt đầu tính giờ</p>
             </div>
             <div className="w-full space-y-3">
-              <button onClick={handleStart} className="w-full py-6 bg-primary rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-transform">MỞ BÀN NGAY</button>
-              <button onClick={() => setShowBookingForm(true)} className="w-full py-5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BÀN TRƯỚC</button>
-              <button onClick={() => setShowMaintenanceConfirm(true)} className="w-full py-5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BẢO TRÌ</button>
+              <button onClick={handleStart} className="w-full py-6 bg-primary rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-transform text-white">MỞ BÀN NGAY</button>
+              <button onClick={() => setShowBookingForm(true)} className="w-full py-5 bg-amber-50 text-amber-600 border border-amber-200 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BÀN TRƯỚC</button>
+              <button onClick={() => setShowMaintenanceConfirm(true)} className="w-full py-5 bg-red-50 text-red-600 border border-red-200 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BẢO TRÌ</button>
             </div>
           </div>
         ) : table.status === 'BOOKED' ? (
@@ -500,16 +500,16 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
               <span className="material-icons-round text-5xl text-yellow-400">event_available</span>
             </div>
             <div>
-              <h3 className="text-xl font-black">BÀN ĐÃ ĐƯỢC ĐẶT</h3>
-              <div className="mt-4 space-y-2 text-left bg-white/5 p-4 rounded-2xl">
-                <p className="text-sm"><span className="text-slate-500">Khách hàng:</span> <span className="font-black">{table.customerName}</span></p>
-                <p className="text-sm"><span className="text-slate-500">SĐT:</span> <span className="font-black">{table.phone}</span></p>
-                <p className="text-sm"><span className="text-slate-500">Giờ đặt:</span> <span className="font-black text-yellow-400">{table.bookedTime}</span></p>
+              <h3 className="text-xl font-black text-amber-600">BÀN ĐÃ ĐƯỢC ĐẶT</h3>
+              <div className="mt-4 space-y-2 text-left bg-slate-100 p-4 rounded-2xl">
+                <p className="text-sm"><span className="text-slate-500">Khách hàng:</span> <span className="font-black text-slate-900">{table.customerName}</span></p>
+                <p className="text-sm"><span className="text-slate-500">SĐT:</span> <span className="font-black text-slate-900">{table.phone}</span></p>
+                <p className="text-sm"><span className="text-slate-500">Giờ đặt:</span> <span className="font-black text-amber-600">{table.bookedTime}</span></p>
               </div>
             </div>
             <div className="w-full space-y-3">
-              <button onClick={handleStartFromBooking} className="w-full py-5 bg-primary rounded-3xl font-black text-lg shadow-xl">BẮT ĐẦU CHƠI</button>
-              <button onClick={async () => { await DB.updateTable(table.id, { status: 'EMPTY', customerName: undefined, phone: undefined, bookedTime: undefined }); onUpdate(); }} className="w-full py-4 bg-slate-800 text-slate-400 rounded-3xl font-black text-sm">HỦY ĐẶT BÀN</button>
+              <button onClick={handleStartFromBooking} className="w-full py-5 bg-primary rounded-3xl font-black text-lg shadow-xl text-white">BẮT ĐẦU CHƠI</button>
+              <button onClick={async () => { await DB.updateTable(table.id, { status: 'EMPTY', customerName: undefined, phone: undefined, bookedTime: undefined }); onUpdate(); }} className="w-full py-4 bg-slate-100 text-slate-500 rounded-3xl font-black text-sm active:bg-slate-200">HỦY ĐẶT BÀN</button>
             </div>
           </div>
         ) : table.status === 'MAINTENANCE' ? (
@@ -518,16 +518,16 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
               <span className="material-icons-round text-5xl text-red-400">build</span>
             </div>
             <div>
-              <h3 className="text-xl font-black text-red-400">BÀN ĐANG BẢO TRÌ</h3>
-              <p className="text-slate-500 text-sm mt-1">Bàn này đang được bảo trì và không thể sử dụng</p>
+              <h3 className="text-xl font-black text-red-600">BÀN ĐANG BẢO TRÌ</h3>
+              <p className="text-slate-500 text-sm mt-1 font-bold">Bàn này đang được bảo trì và không thể sử dụng</p>
             </div>
-            <button onClick={handleRemoveMaintenance} className="w-full py-5 bg-primary rounded-3xl font-black text-lg shadow-xl">HOÀN TẤT BẢO TRÌ</button>
+            <button onClick={handleRemoveMaintenance} className="w-full py-5 bg-primary rounded-3xl font-black text-lg shadow-xl text-white">HOÀN TẤT BẢO TRÌ</button>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
               <div
-                className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center relative group active:bg-white/10 transition-colors"
+                className="bg-slate-50 p-3 rounded-3xl border border-slate-200 text-center relative group active:bg-slate-100 transition-colors"
                 onClick={() => {
                   if (!showTimeEdit && table.startTime) {
                     const date = new Date(table.startTime);
@@ -545,7 +545,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                       type="time"
                       value={newStartTime}
                       onChange={e => setNewStartTime(e.target.value)}
-                      className="bg-slate-800 border-none rounded-lg text-sm font-black text-emerald-400 p-1 w-full text-center outline-none ring-1 ring-emerald-500/50"
+                      className="bg-white border-none rounded-lg text-sm font-black text-emerald-600 p-1 w-full text-center outline-none ring-1 ring-emerald-200"
                     />
                     <div className="flex gap-1 w-full">
                       <button onClick={handleUpdateTime} className="flex-1 bg-emerald-500 text-black rounded-lg p-1 transition-all active:scale-95">
@@ -557,25 +557,25 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                     </div>
                   </div>
                 ) : (
-                  <p className="text-2xl font-black font-mono text-emerald-400">
+                  <p className="text-2xl font-black font-mono text-emerald-600">
                     {table.startTime ? new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                   </p>
                 )}
               </div>
-              <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
+              <div className="bg-slate-50 p-3 rounded-3xl border border-slate-200 text-center">
                 <p className="text-xs font-black text-slate-500 uppercase">GIỜ CHƠI</p>
                 <p className="text-2xl font-black font-mono text-primary">{duration.hrs.toString().padStart(2, '0')}:{duration.mins.toString().padStart(2, '0')}</p>
               </div>
-              <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
+              <div className="bg-slate-50 p-3 rounded-3xl border border-slate-200 text-center">
                 <p className="text-xs font-black text-slate-500 uppercase">TIỀN BÀN</p>
-                <p className="text-2xl font-black font-mono">{tableFee.toLocaleString()}đ</p>
+                <p className="text-2xl font-black font-mono text-slate-900">{tableFee.toLocaleString()}đ</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center bg-primary/5 p-4 rounded-3xl border border-primary/10">
+              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-3xl border border-slate-200">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/20 rounded-2xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-slate-200 rounded-2xl flex items-center justify-center">
                     <span className="material-icons-round text-primary text-xl">restaurant_menu</span>
                   </div>
                   <div>
@@ -583,10 +583,10 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-sm font-bold text-primary">{localOrders.length} món đã gọi</p>
                       {JSON.stringify(localOrders) !== JSON.stringify(table.orders) && (
-                        <span className="text-[9px] font-black text-yellow-500 animate-pulse">● ĐANG ĐỢI...</span>
+                        <span className="text-[9px] font-black text-amber-600 animate-pulse">● ĐANG ĐỢI...</span>
                       )}
                       {isSavingOrders && (
-                        <span className="text-[9px] font-black text-emerald-500 animate-pulse uppercase tracking-tighter">● ĐÃ LƯU</span>
+                        <span className="text-[9px] font-black text-emerald-600 animate-pulse uppercase tracking-tighter">● ĐÃ LƯU</span>
                       )}
                     </div>
                   </div>
@@ -605,28 +605,28 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                   <p className="text-center py-8 text-slate-600 text-xs italic">Chưa gọi dịch vụ</p>
                 ) : (
                   localOrders.map(order => (
-                    <div key={order.id} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <div key={order.id} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
                       <div className="flex-1">
-                        <p className="text-lg font-black">{order.name}</p>
+                        <p className="text-lg font-black text-slate-900">{order.name}</p>
                         <p className="text-xs font-bold text-slate-500 uppercase">SL: {order.quantity} x {order.price.toLocaleString()}đ</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-slate-900 rounded-xl">
+                        <div className="flex items-center gap-2 bg-slate-200/50 rounded-xl">
                           <button
                             onClick={() => handleUpdateOrderQuantity(order.id, -1)}
-                            className="p-2 text-slate-400 hover:text-white transition-colors"
+                            className="p-2 text-slate-500 hover:text-black transition-colors"
                           >
                             <span className="material-icons-round text-sm">remove</span>
                           </button>
-                          <span className="text-sm font-black min-w-[20px] text-center">{order.quantity}</span>
+                          <span className="text-sm font-black min-w-[20px] text-center text-slate-900">{order.quantity}</span>
                           <button
                             onClick={() => handleUpdateOrderQuantity(order.id, 1)}
-                            className="p-2 text-slate-400 hover:text-white transition-colors"
+                            className="p-2 text-slate-500 hover:text-black transition-colors"
                           >
                             <span className="material-icons-round text-sm">add</span>
                           </button>
                         </div>
-                        <p className="font-mono font-black min-w-[80px] text-right">{(order.price * order.quantity).toLocaleString()}đ</p>
+                        <p className="font-mono font-black min-w-[80px] text-right text-slate-900">{(order.price * order.quantity).toLocaleString()}đ</p>
                         <button
                           onClick={() => handleRemoveOrderItem(order.id)}
                           className="p-2 text-red-400 hover:text-red-300 transition-colors"
@@ -644,20 +644,20 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
       </div>
 
       {table.status === 'PLAYING' && (
-        <div className="p-6 pb-12 bg-surface-dark border-t border-white/10 space-y-6">
+        <div className="p-6 pb-12 bg-white border-t border-slate-200 space-y-6 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)]">
           <div className="flex justify-between items-end">
-            <span className="text-sm font-black text-slate-500 uppercase tracking-widest">TỔNG THANH TOÁN</span>
-            <span className="text-5xl font-black text-white font-mono">{total.toLocaleString()}₫</span>
+            <span className="text-sm font-black text-slate-400 uppercase tracking-widest">TỔNG THANH TOÁN</span>
+            <span className="text-5xl font-black text-slate-900 font-mono">{total.toLocaleString()}₫</span>
           </div>
-          <button onClick={handleCheckout} className="w-full py-6 bg-accent-red rounded-3xl font-black text-xl shadow-xl shadow-red-900/20 active:scale-95 transition-transform">THANH TOÁN & KẾT THÚC</button>
+          <button onClick={handleCheckout} className="w-full py-6 bg-accent-red rounded-3xl font-black text-xl shadow-xl shadow-red-100 active:scale-95 transition-transform text-white">THANH TOÁN & KẾT THÚC</button>
         </div>
       )}
 
       {showAddMenu && (
-        <div className="absolute inset-0 bg-background-dark z-[110] flex flex-col animate-in fade-in zoom-in duration-200">
-          <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
+        <div className="absolute inset-0 bg-white z-[110] flex flex-col animate-in fade-in zoom-in duration-200">
+          <div className="pt-14 px-6 pb-4 border-b border-slate-200 flex items-center justify-between">
             <button onClick={() => setShowAddMenu(false)} className="text-slate-400 p-2"><span className="material-icons-round text-4xl">arrow_back</span></button>
-            <h2 className="text-xl font-black">CHỌN MÓN DỊCH VỤ</h2>
+            <h2 className="text-xl font-black text-slate-900">CHỌN MÓN DỊCH VỤ</h2>
             <div className="w-10"></div>
           </div>
           <div className="px-4 pt-4 pb-2">
@@ -668,7 +668,7 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                   onClick={() => setMenuCategoryFilter(cat)}
                   className={`px-6 py-3 rounded-full text-sm font-black whitespace-nowrap transition-all ${menuCategoryFilter === cat
                     ? 'bg-primary text-white scale-105 shadow-lg shadow-primary/20'
-                    : 'bg-slate-900 text-slate-400'
+                    : 'bg-slate-100 text-slate-500'
                     }`}
                 >
                   {cat === 'All' ? 'TẤT CẢ' : cat.toUpperCase()}
@@ -688,11 +688,11 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                   key={item.id}
                   onClick={() => { if (item.status !== 'Out of Stock') { handleAddItem(item); setShowAddMenu(false); } }}
                   className={`
-                    bg-surface-dark-lighter p-4 rounded-3xl border-2 transition-all 
-                    active:scale-95 shadow-lg flex items-center justify-between
+                    bg-white p-4 rounded-3xl border-2 transition-all 
+                    active:scale-95 shadow-sm flex items-center justify-between
                     ${item.status === 'Out of Stock'
-                      ? 'border-red-500/10 opacity-50'
-                      : 'border-white/5 border-l-primary/40'}
+                      ? 'border-red-100 opacity-50'
+                      : 'border-slate-100 border-l-primary/40'}
                   `}
                 >
                   <div className="flex items-center gap-5">
@@ -703,10 +703,10 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                       </span>
                     </div>
                     <div>
-                      <h4 className="text-xl font-black text-slate-100 mb-1">{item.name}</h4>
+                      <h4 className="text-xl font-black text-slate-900 mb-1">{item.name}</h4>
                       <div className="flex items-center gap-3">
                         <p className="text-primary font-black text-lg font-mono">{item.price.toLocaleString()}đ</p>
-                        {item.status === 'Low Stock' && <span className="text-[10px] font-black text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-lg uppercase tracking-wider">Sắp hết</span>}
+                        {item.status === 'Low Stock' && <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg uppercase tracking-wider">Sắp hết</span>}
                       </div>
                     </div>
                   </div>
@@ -840,37 +840,37 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
       <h2 className="text-3xl font-black">THỐNG KÊ HÔM NAY</h2>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-primary/10 border border-primary/30 rounded-3xl p-4">
-          <p className="text-sm font-black text-primary uppercase mb-1">DOANH THU</p>
-          <p className="text-4xl font-black text-white">{totalRevenue.toLocaleString()}đ</p>
+        <div className="bg-blue-50 border border-blue-100 rounded-3xl p-4">
+          <p className="text-sm font-black text-blue-600 uppercase mb-1">DOANH THU</p>
+          <p className="text-4xl font-black text-slate-900">{totalRevenue.toLocaleString()}đ</p>
         </div>
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-4">
-          <p className="text-sm font-black text-emerald-400 uppercase mb-1">SỐ BÀN</p>
-          <p className="text-4xl font-black text-white">{totalTablesPlayed}</p>
+        <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-4">
+          <p className="text-sm font-black text-emerald-600 uppercase mb-1">SỐ BÀN</p>
+          <p className="text-4xl font-black text-slate-900">{totalTablesPlayed}</p>
         </div>
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-3xl p-4">
-          <p className="text-sm font-black text-yellow-400 uppercase mb-1">TB/BÀN</p>
-          <p className="text-4xl font-black text-white">{avgRevenuePerTable.toLocaleString()}đ</p>
+        <div className="bg-amber-50 border border-amber-100 rounded-3xl p-4">
+          <p className="text-sm font-black text-amber-600 uppercase mb-1">TB/BÀN</p>
+          <p className="text-4xl font-black text-slate-900">{avgRevenuePerTable.toLocaleString()}đ</p>
         </div>
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-3xl p-4">
-          <p className="text-sm font-black text-blue-400 uppercase mb-1">ĐANG CHƠI</p>
-          <p className="text-4xl font-black text-white">{tables.filter(t => t.status === 'PLAYING').length}</p>
+        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4">
+          <p className="text-sm font-black text-slate-500 uppercase mb-1">ĐANG CHƠI</p>
+          <p className="text-4xl font-black text-slate-900">{tables.filter(t => t.status === 'PLAYING').length}</p>
         </div>
       </div>
 
       {topItems.length > 0 && (
-        <div className="bg-surface-dark rounded-3xl p-6 border border-white/5">
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
           <h3 className="text-lg font-black mb-4 uppercase tracking-tighter">MÓN BÁN CHẠY</h3>
           <div className="space-y-4">
             {topItems.map((item, idx) => (
               <div key={idx} className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <span className="text-base font-black text-primary w-6">{idx + 1}.</span>
-                  <span className="text-lg font-bold">{item.name}</span>
+                  <span className="text-lg font-bold text-slate-900">{item.name}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-base font-black text-white">{item.quantity} đơn</p>
-                  <p className="text-[10px] text-slate-500">{item.revenue.toLocaleString()}đ</p>
+                  <p className="text-base font-black text-slate-900">{item.quantity} đơn</p>
+                  <p className="text-[10px] text-slate-500 font-bold">{item.revenue.toLocaleString()}đ</p>
                 </div>
               </div>
             ))}
@@ -997,14 +997,14 @@ const App = () => {
   }, [transactions, transactionFilter, transactionSearch]);
 
   return (
-    <div className="flex h-screen bg-background-dark text-slate-100 font-display overflow-hidden flex-col pb-14">
-      <header className="pt-2 pb-2 px-6 border-b border-white/5 bg-background-dark/80 backdrop-blur-md flex items-center justify-between z-40">
+    <div className="flex h-screen bg-white text-slate-900 font-display overflow-hidden flex-col pb-14">
+      <header className="pt-2 pb-2 px-6 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center justify-between z-40">
         <div className="flex items-center gap-2">
           <span className="material-icons-round text-primary text-2xl">sports_esports</span>
           <h1 className="font-black text-base uppercase tracking-tighter italic">Lilius</h1>
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-black text-accent-emerald bg-emerald-500/10 px-3 py-1 rounded-full">
-          <div className="w-1.5 h-1.5 bg-accent-emerald rounded-full animate-pulse"></div>
+        <div className="flex items-center gap-2 text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
           LIVE
         </div>
       </header>
@@ -1030,8 +1030,8 @@ const App = () => {
                     key={filter}
                     onClick={() => setTransactionFilter(filter)}
                     className={`px-6 py-3 rounded-full text-sm font-black whitespace-nowrap transition-all ${transactionFilter === filter
-                      ? 'bg-primary text-white scale-105'
-                      : 'bg-slate-900 text-slate-400 opacity-60'
+                      ? 'bg-primary text-white scale-105 shadow-md'
+                      : 'bg-slate-100 text-slate-500'
                       }`}
                   >
                     {filter === 'all' ? 'TẤT CẢ' : filter === 'today' ? 'HÔM NAY' : filter === 'week' ? 'TUẦN NÀY' : 'THÁNG NÀY'}
@@ -1044,7 +1044,7 @@ const App = () => {
                 value={transactionSearch}
                 onChange={(e) => setTransactionSearch(e.target.value)}
                 placeholder="Tìm kiếm bàn hoặc mã giao dịch..."
-                className="w-full bg-slate-900/50 border border-white/10 rounded-2xl p-4 font-bold text-base text-white placeholder-slate-600 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-bold text-base text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm"
               />
             </div>
 
@@ -1056,7 +1056,7 @@ const App = () => {
                   <div
                     key={tx.id}
                     onClick={() => setSelectedTransaction(tx)}
-                    className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex justify-between items-center active:scale-95 transition-all tap-highlight-transparent"
+                    className="bg-white p-4 rounded-3xl border border-slate-200 flex justify-between items-center active:scale-95 transition-all tap-highlight-transparent shadow-sm"
                   >
                     <div>
                       <p className="font-black text-xl mb-0.5">Bàn {tx.tableName}</p>
@@ -1077,22 +1077,22 @@ const App = () => {
         {currentView === 'settings' && <SettingsView tables={tables} menu={menu} rates={rates} onUpdate={refresh} />}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-surface-dark/95 backdrop-blur-2xl border-t border-white/5 flex items-center justify-around px-2 pb-8 pt-2 z-50">
-        <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'dashboard' ? 'text-primary' : 'text-slate-600'}`}>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl border-t border-slate-200 flex items-center justify-around px-2 pb-8 pt-2 z-50 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
+        <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'dashboard' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-2xl">grid_view</span>
-          <span className="text-[8px] font-black uppercase">SƠ ĐỒ</span>
+          <span className="text-[11px] font-black uppercase">SƠ ĐỒ</span>
         </button>
-        <button onClick={() => setCurrentView('history')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'history' ? 'text-primary' : 'text-slate-600'}`}>
+        <button onClick={() => setCurrentView('history')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'history' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-2xl">history</span>
-          <span className="text-[8px] font-black uppercase">LỊCH SỬ</span>
+          <span className="text-[11px] font-black uppercase">LỊCH SỬ</span>
         </button>
-        <button onClick={() => setCurrentView('reports')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'reports' ? 'text-primary' : 'text-slate-600'}`}>
+        <button onClick={() => setCurrentView('reports')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'reports' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-2xl">bar_chart</span>
-          <span className="text-[8px] font-black uppercase">THỐNG KÊ</span>
+          <span className="text-[11px] font-black uppercase">THỐNG KÊ</span>
         </button>
-        <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'settings' ? 'text-primary' : 'text-slate-600'}`}>
+        <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'settings' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-2xl">settings</span>
-          <span className="text-[8px] font-black uppercase">QUẢN LÝ</span>
+          <span className="text-[11px] font-black uppercase">QUẢN LÝ</span>
         </button>
       </nav>
 
@@ -1109,11 +1109,11 @@ const App = () => {
 
       {showSuccess && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-white/60 backdrop-blur-sm animate-in fade-in duration-300"
           onClick={() => setShowSuccess(false)}
         >
           <div
-            className="bg-surface-dark border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl shadow-primary/20 flex flex-col items-center text-center space-y-4 animate-in zoom-in duration-300"
+            className="bg-white border border-slate-200 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl shadow-slate-200 flex flex-col items-center text-center space-y-4 animate-in zoom-in duration-300"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-20 h-20 bg-accent-emerald/10 rounded-full flex items-center justify-center">

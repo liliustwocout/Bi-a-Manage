@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="dark">
+<html lang="vi" class="light">
 
 <head>
     <meta charset="UTF-8">
@@ -17,14 +17,14 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#3c83f6",
-                        "primary-hover": "#2563eb",
-                        "background-dark": "#101722",
-                        "surface-dark": "#1e293b",
-                        "surface-dark-lighter": "#2a374a",
-                        "accent-red": "#ef4444",
-                        "accent-emerald": "#10b981",
-                        "accent-amber": "#f59e0b",
+                        "primary": "#000000",
+                        "primary-hover": "#1a1a1a",
+                        "background-dark": "#ffffff",
+                        "surface-dark": "#f8fafc",
+                        "surface-dark-lighter": "#f1f5f9",
+                        "accent-red": "#dc2626",
+                        "accent-emerald": "#059669",
+                        "accent-amber": "#d97706",
                     },
                     fontFamily: {
                         "display": ["Inter", "sans-serif"]
@@ -48,9 +48,9 @@
 
         /* Ẩn scrollbar trên mobile */
         .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         /* Hiệu ứng bấm nút kiểu iOS */
@@ -81,7 +81,7 @@
     <link rel="stylesheet" href="/index.css">
 </head>
 
-<body class="bg-background-dark text-slate-100 overflow-hidden antialiased select-none">
+<body class="bg-white text-slate-900 overflow-hidden antialiased select-none">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
