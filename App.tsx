@@ -955,8 +955,8 @@ const App = () => {
   }, [transactions, transactionFilter, transactionSearch]);
 
   return (
-    <div className="flex h-screen bg-background-dark text-slate-100 font-display overflow-hidden flex-col">
-      <header className="pt-14 pb-4 px-6 border-b border-white/5 bg-background-dark/80 backdrop-blur-md flex items-center justify-between z-40">
+    <div className="flex h-screen bg-background-dark text-slate-100 font-display overflow-hidden flex-col pb-14">
+      <header className="pt-2 pb-2 px-6 border-b border-white/5 bg-background-dark/80 backdrop-blur-md flex items-center justify-between z-40">
         <div className="flex items-center gap-2">
           <span className="material-icons-round text-primary text-2xl">sports_esports</span>
           <h1 className="font-black text-base uppercase tracking-tighter italic">Lilius</h1>
