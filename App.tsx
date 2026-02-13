@@ -393,7 +393,7 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
     await DB.updateTable(table.id, {
       status: 'PLAYING',
       startTime: new Date().toISOString(),
-      prepaidAmount: undefined // Reset trạng thái trả trước cho phiên chơi mới
+      prepaidAmount: 0 // Reset trạng thái trả trước cho phiên chơi mới
     });
     onUpdate();
   };
@@ -420,7 +420,7 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
       status: 'MAINTENANCE',
       startTime: undefined,
       orders: [],
-      prepaidAmount: undefined
+      prepaidAmount: 0
     });
     setShowMaintenanceConfirm(false);
     onUpdate();
@@ -431,7 +431,7 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
       status: 'EMPTY',
       startTime: undefined,
       orders: [],
-      prepaidAmount: undefined
+      prepaidAmount: 0
     });
     onUpdate();
   };
@@ -492,7 +492,7 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
         customerName: undefined,
         phone: undefined,
         bookedTime: undefined,
-        prepaidAmount: undefined // Reset số tiền trả trước khi thanh toán
+        prepaidAmount: 0 // Reset số tiền trả trước khi thanh toán
       });
       onUpdate();
     } catch (e) {
@@ -537,7 +537,7 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
         <div className="text-center">
           <div className="flex items-center justify-center gap-2">
             <h1 className="text-2xl font-black uppercase">BÀN {table.id}</h1>
-            {table.prepaidAmount && (
+            {table.status === 'PLAYING' && table.prepaidAmount && (
               <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${remainingSeconds <= 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-500 text-white'}`}>
                 {remainingSeconds <= 0 ? 'HẾT GIỜ' : 'TRẢ TRƯỚC'}
               </span>
