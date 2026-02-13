@@ -301,6 +301,8 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
   const [bookingData, setBookingData] = useState({ customerName: '', phone: '', bookedTime: '' });
   const [localOrders, setLocalOrders] = useState<OrderItem[]>(table.orders);
   const [isSavingOrders, setIsSavingOrders] = useState(false);
+  const [showTimeEdit, setShowTimeEdit] = useState(false);
+  const [newStartTime, setNewStartTime] = useState('');
 
   useEffect(() => {
     setLocalOrders(table.orders);
@@ -452,6 +454,16 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
     onUpdate();
   };
 
+  const handleUpdateTime = async () => {
+    if (!newStartTime || !table.startTime) return;
+    const [hrs, mins] = newStartTime.split(':');
+    const updatedDate = new Date(table.startTime);
+    updatedDate.setHours(parseInt(hrs), parseInt(mins));
+    await DB.updateTable(table.id, { startTime: updatedDate.toISOString() });
+    setShowTimeEdit(false);
+    onUpdate();
+  };
+
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
       <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
@@ -514,11 +526,41 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
-              <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
-                <p className="text-xs font-black text-slate-500 uppercase">MỞ BÀN</p>
-                <p className="text-2xl font-black font-mono text-emerald-400">
-                  {table.startTime ? new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+              <div
+                className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center relative group active:bg-white/10 transition-colors"
+                onClick={() => {
+                  if (!showTimeEdit && table.startTime) {
+                    const date = new Date(table.startTime);
+                    setNewStartTime(`${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`);
+                    setShowTimeEdit(true);
+                  }
+                }}
+              >
+                <p className="text-xs font-black text-slate-500 uppercase flex items-center justify-center gap-1">
+                  MỞ BÀN <span className="material-icons-round text-[10px]">edit</span>
                 </p>
+                {showTimeEdit ? (
+                  <div className="mt-1 flex flex-col items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <input
+                      type="time"
+                      value={newStartTime}
+                      onChange={e => setNewStartTime(e.target.value)}
+                      className="bg-slate-800 border-none rounded-lg text-sm font-black text-emerald-400 p-1 w-full text-center outline-none ring-1 ring-emerald-500/50"
+                    />
+                    <div className="flex gap-1 w-full">
+                      <button onClick={handleUpdateTime} className="flex-1 bg-emerald-500 text-black rounded-lg p-1 transition-all active:scale-95">
+                        <span className="material-icons-round text-sm">check</span>
+                      </button>
+                      <button onClick={() => setShowTimeEdit(false)} className="flex-1 bg-slate-700 text-white rounded-lg p-1 transition-all active:scale-95">
+                        <span className="material-icons-round text-sm">close</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-2xl font-black font-mono text-emerald-400">
+                    {table.startTime ? new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                  </p>
+                )}
               </div>
               <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
                 <p className="text-xs font-black text-slate-500 uppercase">GIỜ CHƠI</p>
