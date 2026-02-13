@@ -29,12 +29,12 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
   return (
     <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto pb-32">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black">SƠ ĐỒ BÀN</h2>
+        <h2 className="text-2xl font-black">SƠ ĐỒ BÀN</h2>
         <div className="flex gap-2">
-          <span className="text-[10px] font-bold bg-primary/20 px-3 py-1 rounded-full text-primary">
+          <span className="text-xs font-black bg-primary/20 px-3 py-1.5 rounded-full text-primary uppercase tracking-tighter">
             {tables.filter(t => t.status === 'PLAYING').length} BẬN
           </span>
-          <span className="text-[10px] font-bold bg-slate-800 px-3 py-1 rounded-full text-slate-400">
+          <span className="text-xs font-black bg-slate-800 px-3 py-1.5 rounded-full text-slate-400 uppercase tracking-tighter">
             {tables.filter(t => t.status === 'EMPTY').length} TRỐNG
           </span>
         </div>
@@ -53,13 +53,13 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
               ${getStatusColor(table.status)}
             `}
           >
-            <span className="text-base font-black truncate px-1">{table.id}</span>
+            <span className="text-6xl font-black tracking-tighter">{table.id}</span>
             {table.status === 'PLAYING' && table.startTime && (
-              <span className="text-[10px] font-mono font-bold mt-1 scale-90 opacity-90">
+              <span className="text-2xl font-mono font-black opacity-100 -mt-2 tracking-tighter">
                 {new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
-            <div className={`mt-1 w-1 h-1 rounded-full ${table.status === 'PLAYING' ? 'bg-white animate-pulse' : 'bg-transparent'}`}></div>
+            <div className={`mt-1 w-1.5 h-1.5 rounded-full ${table.status === 'PLAYING' ? 'bg-white animate-pulse' : 'bg-transparent'}`}></div>
           </div>
         ))}
       </div>
@@ -152,30 +152,30 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
     <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black">QUẢN LÝ HỆ THỐNG</h2>
+          <h2 className="text-3xl font-black">QUẢN LÝ</h2>
           {(tab === 'menu' || tab === 'rates') && (
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className={`px-6 py-2 rounded-xl font-black text-xs transition-all ${isSaving ? 'bg-slate-800 text-slate-500' : 'bg-accent-emerald text-white shadow-lg shadow-emerald-900/20'}`}
+              className={`px-8 py-3 rounded-2xl font-black text-sm transition-all ${isSaving ? 'bg-slate-800 text-slate-500' : 'bg-accent-emerald text-white shadow-lg shadow-emerald-900/20 active:scale-95'}`}
             >
               {isSaving ? 'ĐANG LƯU...' : 'LƯU THAY ĐỔI'}
             </button>
           )}
         </div>
-        <div className="flex bg-slate-900 p-1 rounded-2xl border border-white/5">
-          <button onClick={() => setTab('tables')} className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all ${tab === 'tables' ? 'bg-primary text-white' : 'text-slate-500'}`}>BÀN</button>
-          <button onClick={() => setTab('menu')} className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all ${tab === 'menu' ? 'bg-primary text-white' : 'text-slate-500'}`}>THỰC ĐƠN</button>
-          <button onClick={() => setTab('rates')} className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all ${tab === 'rates' ? 'bg-primary text-white' : 'text-slate-500'}`}>GIÁ GIỜ</button>
+        <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-white/5">
+          <button onClick={() => setTab('tables')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${tab === 'tables' ? 'bg-primary text-white scale-105 shadow-lg' : 'text-slate-500'}`}>BÀN</button>
+          <button onClick={() => setTab('menu')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${tab === 'menu' ? 'bg-primary text-white scale-105 shadow-lg' : 'text-slate-500'}`}>MÓN</button>
+          <button onClick={() => setTab('rates')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${tab === 'rates' ? 'bg-primary text-white scale-105 shadow-lg' : 'text-slate-500'}`}>GIÁ</button>
         </div>
       </div>
 
       {tab === 'tables' && (
         <div className="space-y-3">
           {tables.map(t => (
-            <div key={t.id} className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex items-center justify-between">
+            <div key={t.id} className="bg-surface-dark p-5 rounded-[2rem] border border-white/5 flex items-center justify-between">
               <div>
-                <p className="font-black">Bàn {t.id}</p>
+                <p className="font-black text-xl mb-1">Bàn {t.id}</p>
                 <select
                   value={t.type}
                   onChange={async (e) => {
@@ -183,7 +183,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
                     await DB.saveTables(newTables);
                     onUpdate();
                   }}
-                  className="bg-transparent border-none text-[10px] font-bold text-primary p-0 focus:ring-0"
+                  className="bg-transparent border-none text-xs font-black text-primary p-0 focus:ring-0 uppercase tracking-tighter"
                 >
                   <option value="Pool">Bida Lỗ (Pool)</option>
                   <option value="Carom">Bida Phăng (Carom)</option>
@@ -191,41 +191,41 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
                   <option value="Snooker">Snooker</option>
                 </select>
               </div>
-              <button onClick={() => deleteTable(t.id)} className="text-accent-red p-2"><span className="material-icons-round">delete</span></button>
+              <button onClick={() => deleteTable(t.id)} className="text-accent-red p-3 active:scale-95"><span className="material-icons-round text-2xl">delete</span></button>
             </div>
           ))}
-          <button onClick={addTable} className="w-full py-4 border-2 border-dashed border-slate-800 rounded-3xl text-slate-500 font-bold text-xs">+ THÊM BÀN MỚI</button>
+          <button onClick={addTable} className="w-full py-6 border-2 border-dashed border-slate-800 rounded-[2rem] text-slate-500 font-bold text-base active:bg-white/5 transition-colors">+ THÊM BÀN MỚI</button>
         </div>
       )}
 
       {tab === 'menu' && (localMenu || []).length > 0 && (
         <div className="space-y-3">
           {localMenu.map(m => (
-            <div key={m.id} className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex gap-4 items-center">
-              <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center">
-                <span className="material-icons-round text-slate-500 text-xl">
+            <div key={m.id} className="bg-surface-dark p-5 rounded-[2rem] border border-white/5 flex gap-4 items-center">
+              <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <span className="material-icons-round text-slate-500 text-3xl">
                   {m.category === 'Drink' ? 'local_drink' : m.category === 'Food' ? 'restaurant' : 'inventory_2'}
                 </span>
               </div>
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 min-w-0 space-y-3">
                 <input
                   value={m.name}
                   onChange={(e) => updateMenuItem(m.id, { name: e.target.value })}
-                  className="bg-transparent border-none p-0 font-black text-sm w-full focus:ring-0"
+                  className="bg-transparent border-none p-0 font-black text-xl w-full focus:ring-0 text-white"
                   placeholder="Tên món"
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                   <input
                     type="number"
                     value={m.price}
                     onChange={(e) => updateMenuItem(m.id, { price: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-900 border border-white/10 rounded-lg p-1.5 font-bold text-xs text-primary w-24 focus:ring-1 focus:ring-primary"
+                    className="bg-slate-900 border border-white/10 rounded-xl p-2 font-bold text-sm text-primary w-28 focus:ring-1 focus:ring-primary outline-none"
                     placeholder="Giá"
                   />
                   <select
                     value={m.category}
                     onChange={(e) => updateMenuItem(m.id, { category: e.target.value as 'Drink' | 'Food' | 'Other' })}
-                    className="bg-slate-900 border border-white/10 rounded-lg p-1.5 font-bold text-xs text-white text-[10px] focus:ring-1 focus:ring-primary"
+                    className="bg-slate-900 border border-white/10 rounded-xl p-2 font-bold text-xs text-white focus:ring-1 focus:ring-primary outline-none"
                   >
                     <option value="Drink">Đồ uống</option>
                     <option value="Food">Đồ ăn</option>
@@ -234,7 +234,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
                   <select
                     value={m.status}
                     onChange={(e) => updateMenuItem(m.id, { status: e.target.value as 'In Stock' | 'Low Stock' | 'Out of Stock' })}
-                    className={`border rounded-lg p-1.5 font-bold text-xs text-[10px] focus:ring-1 ${m.status === 'In Stock' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
+                    className={`border rounded-xl p-2 font-black text-[10px] focus:ring-1 ${m.status === 'In Stock' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
                       m.status === 'Low Stock' ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400' :
                         'bg-red-500/20 border-red-500/30 text-red-400'
                       }`}
@@ -457,8 +457,8 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
       <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
         <button onClick={onClose} className="p-2 -ml-2 text-slate-400"><span className="material-icons-round text-3xl">close</span></button>
         <div className="text-center">
-          <h1 className="text-lg font-black uppercase">BÀN {table.id}</h1>
-          <p className="text-[10px] font-bold text-slate-500">{table.type} • {rates[table.type]?.toLocaleString()}đ/h</p>
+          <h1 className="text-2xl font-black uppercase">BÀN {table.id}</h1>
+          <p className="text-xs font-bold text-slate-500">{table.type} • {rates[table.type]?.toLocaleString()}đ/h</p>
         </div>
         <div className="w-10"></div>
       </div>
@@ -466,17 +466,20 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {table.status === 'EMPTY' ? (
           <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
-              <span className="material-icons-round text-5xl text-primary">play_arrow</span>
+            <div
+              onClick={handleStart}
+              className="w-28 h-28 bg-primary/10 rounded-full flex items-center justify-center active:scale-95 transition-transform cursor-pointer border border-primary/20 shadow-lg shadow-primary/10"
+            >
+              <span className="material-icons-round text-6xl text-primary">play_arrow</span>
             </div>
             <div>
               <h3 className="text-xl font-black">BÀN ĐANG TRỐNG</h3>
               <p className="text-slate-500 text-sm mt-1">Bấm nút bên dưới để bắt đầu tính giờ</p>
             </div>
             <div className="w-full space-y-3">
-              <button onClick={handleStart} className="w-full py-5 bg-primary rounded-3xl font-black text-lg shadow-xl">MỞ BÀN NGAY</button>
-              <button onClick={() => setShowBookingForm(true)} className="w-full py-4 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-3xl font-black text-sm">ĐẶT BÀN TRƯỚC</button>
-              <button onClick={() => setShowMaintenanceConfirm(true)} className="w-full py-4 bg-red-500/20 text-red-400 border border-red-500/30 rounded-3xl font-black text-sm">ĐẶT BẢO TRÌ</button>
+              <button onClick={handleStart} className="w-full py-6 bg-primary rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-transform">MỞ BÀN NGAY</button>
+              <button onClick={() => setShowBookingForm(true)} className="w-full py-5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BÀN TRƯỚC</button>
+              <button onClick={() => setShowMaintenanceConfirm(true)} className="w-full py-5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BẢO TRÌ</button>
             </div>
           </div>
         ) : table.status === 'BOOKED' ? (
@@ -512,18 +515,18 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
           <>
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">MỞ BÀN</p>
-                <p className="text-lg font-black font-mono text-emerald-400">
+                <p className="text-xs font-black text-slate-500 uppercase">MỞ BÀN</p>
+                <p className="text-2xl font-black font-mono text-emerald-400">
                   {table.startTime ? new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                 </p>
               </div>
               <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">GIỜ CHƠI</p>
-                <p className="text-lg font-black font-mono text-primary">{duration.hrs.toString().padStart(2, '0')}:{duration.mins.toString().padStart(2, '0')}</p>
+                <p className="text-xs font-black text-slate-500 uppercase">GIỜ CHƠI</p>
+                <p className="text-2xl font-black font-mono text-primary">{duration.hrs.toString().padStart(2, '0')}:{duration.mins.toString().padStart(2, '0')}</p>
               </div>
               <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">TIỀN BÀN</p>
-                <p className="text-lg font-black font-mono">{tableFee.toLocaleString()}đ</p>
+                <p className="text-xs font-black text-slate-500 uppercase">TIỀN BÀN</p>
+                <p className="text-2xl font-black font-mono">{tableFee.toLocaleString()}đ</p>
               </div>
             </div>
 
@@ -534,9 +537,9 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                     <span className="material-icons-round text-primary text-xl">restaurant_menu</span>
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">DỊCH VỤ</h3>
+                    <h3 className="text-base font-black text-slate-400 uppercase tracking-widest leading-none">DỊCH VỤ</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <p className="text-[10px] font-bold text-primary">{localOrders.length} món đã gọi</p>
+                      <p className="text-sm font-bold text-primary">{localOrders.length} món đã gọi</p>
                       {JSON.stringify(localOrders) !== JSON.stringify(table.orders) && (
                         <span className="text-[9px] font-black text-yellow-500 animate-pulse">● ĐANG ĐỢI...</span>
                       )}
@@ -562,8 +565,8 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                   localOrders.map(order => (
                     <div key={order.id} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
                       <div className="flex-1">
-                        <p className="text-sm font-bold">{order.name}</p>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">SL: {order.quantity} x {order.price.toLocaleString()}đ</p>
+                        <p className="text-lg font-black">{order.name}</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase">SL: {order.quantity} x {order.price.toLocaleString()}đ</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 bg-slate-900 rounded-xl">
@@ -601,18 +604,18 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
       {table.status === 'PLAYING' && (
         <div className="p-6 pb-12 bg-surface-dark border-t border-white/10 space-y-6">
           <div className="flex justify-between items-end">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">TỔNG THANH TOÁN</span>
-            <span className="text-4xl font-black text-white font-mono">{total.toLocaleString()}₫</span>
+            <span className="text-sm font-black text-slate-500 uppercase tracking-widest">TỔNG THANH TOÁN</span>
+            <span className="text-5xl font-black text-white font-mono">{total.toLocaleString()}₫</span>
           </div>
-          <button onClick={handleCheckout} className="w-full py-5 bg-accent-red rounded-3xl font-black text-lg shadow-xl shadow-red-900/20">THANH TOÁN & KẾT THÚC</button>
+          <button onClick={handleCheckout} className="w-full py-6 bg-accent-red rounded-3xl font-black text-xl shadow-xl shadow-red-900/20 active:scale-95 transition-transform">THANH TOÁN & KẾT THÚC</button>
         </div>
       )}
 
       {showAddMenu && (
         <div className="absolute inset-0 bg-background-dark z-[110] flex flex-col animate-in fade-in zoom-in duration-200">
           <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
-            <button onClick={() => setShowAddMenu(false)} className="text-slate-400 p-2"><span className="material-icons-round text-3xl">arrow_back</span></button>
-            <h2 className="font-black">CHỌN MÓN</h2>
+            <button onClick={() => setShowAddMenu(false)} className="text-slate-400 p-2"><span className="material-icons-round text-4xl">arrow_back</span></button>
+            <h2 className="text-xl font-black">CHỌN MÓN DỊCH VỤ</h2>
             <div className="w-10"></div>
           </div>
           <div className="px-4 pt-4 pb-2">
@@ -621,8 +624,8 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                 <button
                   key={cat}
                   onClick={() => setMenuCategoryFilter(cat)}
-                  className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all ${menuCategoryFilter === cat
-                    ? 'bg-primary text-white'
+                  className={`px-6 py-3 rounded-full text-sm font-black whitespace-nowrap transition-all ${menuCategoryFilter === cat
+                    ? 'bg-primary text-white scale-105 shadow-lg shadow-primary/20'
                     : 'bg-slate-900 text-slate-400'
                     }`}
                 >
@@ -650,27 +653,27 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                       : 'border-white/5 border-l-primary/40'}
                   `}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${item.status === 'Out of Stock' ? 'bg-slate-800' : 'bg-primary/10 text-primary'
+                  <div className="flex items-center gap-5">
+                    <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center ${item.status === 'Out of Stock' ? 'bg-slate-800' : 'bg-primary/10 text-primary'
                       }`}>
-                      <span className="material-icons-round text-2xl">
+                      <span className="material-icons-round text-3xl">
                         {item.category === 'Drink' ? 'local_drink' : item.category === 'Food' ? 'restaurant' : 'inventory_2'}
                       </span>
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-slate-100">{item.name}</h4>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-primary font-black text-xs font-mono">{item.price.toLocaleString()}đ</p>
-                        {item.status === 'Low Stock' && <span className="text-[8px] font-black text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded uppercase">Sắp hết</span>}
+                      <h4 className="text-xl font-black text-slate-100 mb-1">{item.name}</h4>
+                      <div className="flex items-center gap-3">
+                        <p className="text-primary font-black text-lg font-mono">{item.price.toLocaleString()}đ</p>
+                        {item.status === 'Low Stock' && <span className="text-[10px] font-black text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-lg uppercase tracking-wider">Sắp hết</span>}
                       </div>
                     </div>
                   </div>
 
                   {item.status === 'Out of Stock' ? (
-                    <span className="text-[10px] font-black text-red-500 uppercase">Hết hàng</span>
+                    <span className="text-xs font-black text-red-500 uppercase bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">Hết hàng</span>
                   ) : (
-                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                      <span className="material-icons-round">add</span>
+                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/30 active:scale-90 transition-transform">
+                      <span className="material-icons-round text-2xl font-black">add</span>
                     </div>
                   )}
                 </div>
@@ -792,39 +795,39 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
 
   return (
     <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
-      <h2 className="text-2xl font-black">THỐNG KÊ HÔM NAY</h2>
+      <h2 className="text-3xl font-black">THỐNG KÊ HÔM NAY</h2>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-primary/10 border border-primary/30 rounded-3xl p-4">
-          <p className="text-[10px] font-bold text-primary uppercase mb-1">DOANH THU</p>
-          <p className="text-2xl font-black text-white">{totalRevenue.toLocaleString()}đ</p>
+          <p className="text-sm font-black text-primary uppercase mb-1">DOANH THU</p>
+          <p className="text-4xl font-black text-white">{totalRevenue.toLocaleString()}đ</p>
         </div>
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-4">
-          <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1">SỐ BÀN</p>
-          <p className="text-2xl font-black text-white">{totalTablesPlayed}</p>
+          <p className="text-sm font-black text-emerald-400 uppercase mb-1">SỐ BÀN</p>
+          <p className="text-4xl font-black text-white">{totalTablesPlayed}</p>
         </div>
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-3xl p-4">
-          <p className="text-[10px] font-bold text-yellow-400 uppercase mb-1">TB/BÀN</p>
-          <p className="text-2xl font-black text-white">{avgRevenuePerTable.toLocaleString()}đ</p>
+          <p className="text-sm font-black text-yellow-400 uppercase mb-1">TB/BÀN</p>
+          <p className="text-4xl font-black text-white">{avgRevenuePerTable.toLocaleString()}đ</p>
         </div>
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-3xl p-4">
-          <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">ĐANG CHƠI</p>
-          <p className="text-2xl font-black text-white">{tables.filter(t => t.status === 'PLAYING').length}</p>
+          <p className="text-sm font-black text-blue-400 uppercase mb-1">ĐANG CHƠI</p>
+          <p className="text-4xl font-black text-white">{tables.filter(t => t.status === 'PLAYING').length}</p>
         </div>
       </div>
 
       {topItems.length > 0 && (
-        <div className="bg-surface-dark rounded-3xl p-4 border border-white/5">
-          <h3 className="text-sm font-black mb-3">TOP MÓN BÁN CHẠY</h3>
-          <div className="space-y-2">
+        <div className="bg-surface-dark rounded-3xl p-6 border border-white/5">
+          <h3 className="text-lg font-black mb-4 uppercase tracking-tighter">MÓN BÁN CHẠY</h3>
+          <div className="space-y-4">
             {topItems.map((item, idx) => (
               <div key={idx} className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-black text-primary w-6">{idx + 1}.</span>
-                  <span className="text-sm font-bold">{item.name}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-base font-black text-primary w-6">{idx + 1}.</span>
+                  <span className="text-lg font-bold">{item.name}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-black">{item.quantity} đơn</p>
+                  <p className="text-base font-black text-white">{item.quantity} đơn</p>
                   <p className="text-[10px] text-slate-500">{item.revenue.toLocaleString()}đ</p>
                 </div>
               </div>
@@ -846,32 +849,54 @@ const App = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [tick, setTick] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [transactionSearch, setTransactionSearch] = useState('');
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
 
-  const refresh = async (isInitial = false) => {
+  // Hydrate from localStorage for instant boot
+  useEffect(() => {
     try {
-      if (isInitial) setLoading(true);
-      const [tablesData, ratesData, menuData, txData] = await Promise.all([
-        DB.getTables(),
-        DB.getRates(),
-        DB.getMenu(),
-        DB.getTransactions()
-      ]);
-      setTables(tablesData);
-      setRates(ratesData);
-      setMenu(menuData);
-      setTransactions(txData);
+      const c1 = localStorage.getItem('lilius_tables');
+      const c2 = localStorage.getItem('lilius_rates');
+      const c3 = localStorage.getItem('lilius_menu');
+      const c4 = localStorage.getItem('lilius_tx');
+      if (c1) setTables(JSON.parse(c1));
+      if (c2) setRates(JSON.parse(c2));
+      if (c3) setMenu(JSON.parse(c3));
+      if (c4) setTransactions(JSON.parse(c4));
+    } catch (e) { console.error('Cache hydration failed', e); }
+  }, []);
 
-      // Sử dụng functional update để tránh bị stale closure (lỗi tự mở lại bàn sau khi đóng)
-      setSelectedTable(prev => {
-        if (!prev) return null;
-        const updated = tablesData.find(t => t.id === prev.id);
-        return updated || null;
-      });
+  const refresh = async (isInitial = false) => {
+    // Only show loading if we have absolutely no data cached on first load
+    if (isInitial && tables.length === 0) setLoading(true);
+
+    const taskTables = DB.getTables().then(data => {
+      setTables(data);
+      localStorage.setItem('lilius_tables', JSON.stringify(data));
+      setSelectedTable(prev => prev ? (data.find(t => t.id === prev.id) || null) : null);
+    });
+
+    const taskRates = DB.getRates().then(data => {
+      setRates(data);
+      localStorage.setItem('lilius_rates', JSON.stringify(data));
+    });
+
+    const taskMenu = DB.getMenu().then(data => {
+      setMenu(data);
+      localStorage.setItem('lilius_menu', JSON.stringify(data));
+    });
+
+    const taskTx = DB.getTransactions().then(data => {
+      setTransactions(data);
+      localStorage.setItem('lilius_tx', JSON.stringify(data));
+    });
+
+    try {
+      // Fire all but don't hold the UI hostage for all of them
+      await Promise.allSettled([taskTables, taskRates, taskMenu, taskTx]);
     } catch (err) {
-      console.error('Refresh error', err);
+      console.error('Refresh failed', err);
     } finally {
       if (isInitial) setLoading(false);
     }
@@ -954,7 +979,7 @@ const App = () => {
         {!loading && currentView === 'dashboard' && <Dashboard tables={tables} rates={rates} onTableClick={setSelectedTable} />}
         {currentView === 'history' && (
           <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
-            <h2 className="text-2xl font-black">LỊCH SỬ GIAO DỊCH</h2>
+            <h2 className="text-3xl font-black">LỊCH SỬ GIAO DỊCH</h2>
 
             <div className="space-y-3">
               <div className="flex gap-2 overflow-x-auto pb-2">
@@ -962,9 +987,9 @@ const App = () => {
                   <button
                     key={filter}
                     onClick={() => setTransactionFilter(filter)}
-                    className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all ${transactionFilter === filter
-                      ? 'bg-primary text-white'
-                      : 'bg-slate-900 text-slate-400'
+                    className={`px-6 py-3 rounded-full text-sm font-black whitespace-nowrap transition-all ${transactionFilter === filter
+                      ? 'bg-primary text-white scale-105'
+                      : 'bg-slate-900 text-slate-400 opacity-60'
                       }`}
                   >
                     {filter === 'all' ? 'TẤT CẢ' : filter === 'today' ? 'HÔM NAY' : filter === 'week' ? 'TUẦN NÀY' : 'THÁNG NÀY'}
@@ -976,8 +1001,8 @@ const App = () => {
                 type="text"
                 value={transactionSearch}
                 onChange={(e) => setTransactionSearch(e.target.value)}
-                placeholder="Tìm kiếm theo tên bàn hoặc mã giao dịch..."
-                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 font-bold text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="Tìm kiếm bàn hoặc mã giao dịch..."
+                className="w-full bg-slate-900/50 border border-white/10 rounded-2xl p-4 font-bold text-base text-white placeholder-slate-600 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
               />
             </div>
 
@@ -992,13 +1017,13 @@ const App = () => {
                     className="bg-surface-dark p-4 rounded-3xl border border-white/5 flex justify-between items-center active:scale-95 transition-all tap-highlight-transparent"
                   >
                     <div>
-                      <p className="font-black text-sm">Bàn {tx.tableName}</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">{tx.duration} • {tx.endTime ? new Date(tx.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</p>
-                      <p className="text-[8px] text-slate-600 mt-1">{tx.id}</p>
+                      <p className="font-black text-xl mb-0.5">Bàn {tx.tableName}</p>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-tighter">{tx.duration} • {tx.endTime ? new Date(tx.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</p>
+                      <p className="text-[10px] text-slate-600 mt-1">{tx.id}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-primary font-mono">{tx.total.toLocaleString()}đ</p>
-                      <p className="text-[8px] font-bold text-accent-emerald uppercase tracking-tighter">{tx.status}</p>
+                      <p className="font-black text-2xl text-primary font-mono">{tx.total.toLocaleString()}đ</p>
+                      <p className="text-[10px] font-black text-accent-emerald uppercase tracking-widest">{tx.status}</p>
                     </div>
                   </div>
                 ))}
