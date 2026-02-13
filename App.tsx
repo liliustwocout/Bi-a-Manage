@@ -45,8 +45,8 @@ const Dashboard = ({ tables, rates, onTableClick }: { tables: Table[], rates: Ta
           const startTime = table.startTime ? new Date(table.startTime) : null;
           const diffMs = startTime ? new Date().getTime() - startTime.getTime() : 0;
           const hourlyRate = rates[table.type] || 0;
-          const remainingSeconds = table.prepaidAmount && hourlyRate > 0
-            ? Math.max(0, Math.floor((table.prepaidAmount / hourlyRate) * 3600 - (diffMs / 1000)))
+          const remainingSeconds = (table.prepaidAmount || 0) > 0 && hourlyRate > 0
+            ? Math.max(0, Math.floor((table.prepaidAmount! / hourlyRate) * 3600 - (diffMs / 1000)))
             : null;
 
           return (
@@ -371,8 +371,8 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
   const total = tableFee + serviceFee;
 
   // Tính thời gian còn lại nếu có trả trước
-  const remainingSeconds = table.prepaidAmount && hourlyRate > 0
-    ? Math.max(0, Math.floor((table.prepaidAmount / hourlyRate) * 3600 - (diffMs / 1000)))
+  const remainingSeconds = (table.prepaidAmount || 0) > 0 && hourlyRate > 0
+    ? Math.max(0, Math.floor((table.prepaidAmount! / hourlyRate) * 3600 - (diffMs / 1000)))
     : 0;
 
   const remainingTimeStr = (() => {
@@ -537,7 +537,7 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
         <div className="text-center">
           <div className="flex items-center justify-center gap-2">
             <h1 className="text-2xl font-black uppercase">BÀN {table.id}</h1>
-            {table.status === 'PLAYING' && table.prepaidAmount && (
+            {(table.status === 'PLAYING' && (table.prepaidAmount || 0) > 0) && (
               <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${remainingSeconds <= 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-500 text-white'}`}>
                 {remainingSeconds <= 0 ? 'HẾT GIỜ' : 'TRẢ TRƯỚC'}
               </span>
@@ -1092,7 +1092,7 @@ const App = () => {
   // Background monitor for prepaid tables
   useEffect(() => {
     tables.forEach(table => {
-      if (table.status === 'PLAYING' && table.prepaidAmount && table.startTime && webhookUrl) {
+      if (table.status === 'PLAYING' && (table.prepaidAmount || 0) > 0 && table.startTime && webhookUrl) {
         const notificationKey = `${table.id}-${table.startTime}`;
         if (notifiedRef.current.has(notificationKey)) return;
 
