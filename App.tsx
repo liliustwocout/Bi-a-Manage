@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Table, MenuItem, Staff, OrderItem, TableStatus, TableRates, Transaction, TableType } from './types';
 import { DB } from './services/db';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -1072,19 +1072,22 @@ const App = () => {
     } catch (e) { console.error('Cache hydration failed', e); }
   }, []);
 
-  const [notifiedTables, setNotifiedTables] = useState<Set<string>>(new Set());
+  const notifiedRef = useRef<Set<string>>(new Set());
 
   // Background monitor for prepaid tables
   useEffect(() => {
     tables.forEach(table => {
-      if (table.status === 'PLAYING' && table.prepaidAmount && !notifiedTables.has(table.id) && webhookUrl) {
-        const startTime = table.startTime ? new Date(table.startTime) : null;
-        if (!startTime) return;
+      if (table.status === 'PLAYING' && table.prepaidAmount && table.startTime && webhookUrl) {
+        const notificationKey = `${table.id}-${table.startTime}`;
+        if (notifiedRef.current.has(notificationKey)) return;
+
+        const startTime = new Date(table.startTime);
         const diffMs = new Date().getTime() - startTime.getTime();
         const hourlyRate = rates[table.type] || 0;
         const remainingSeconds = hourlyRate > 0 ? (table.prepaidAmount / hourlyRate) * 3600 - (diffMs / 1000) : 1;
 
         if (remainingSeconds <= 0) {
+          notifiedRef.current.add(notificationKey);
           const sendAlert = async () => {
             try {
               await fetch(webhookUrl, {
@@ -1094,14 +1097,21 @@ const App = () => {
                   content: `⚠️ **HẾT GIỜ CHƠI TẠI BÀN ${table.id}**\n- Số tiền trả trước: ${table.prepaidAmount?.toLocaleString()}đ\n- Loại bàn: ${table.type}\n\n@here Vui lòng kiểm tra bàn!`
                 })
               });
-              setNotifiedTables(prev => new Set(prev).add(table.id));
-            } catch (e) { console.error("Global alert failed", e); }
+            } catch (e) {
+              console.error("Global alert failed", e);
+            }
           };
           sendAlert();
         }
       }
     });
-  }, [tables, tick, webhookUrl, rates, notifiedTables]);
+
+    // Cleanup keys for tables no longer active
+    const activeKeys = new Set(tables.filter(t => t.status === 'PLAYING' && t.startTime).map(t => `${t.id}-${t.startTime}`));
+    notifiedRef.current.forEach(key => {
+      if (!activeKeys.has(key)) notifiedRef.current.delete(key);
+    });
+  }, [tables, tick, webhookUrl, rates]);
 
   const refresh = async (isInitial = false) => {
     // Only show loading if we have absolutely no data cached on first load
