@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, MenuItem, Staff, OrderItem, TableStatus, TableRates, Transaction, TableType } from './types';
 import { DB } from './services/db';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 // --- Utils ---
 const calculateDuration = (startTimeStr: string) => {
@@ -67,8 +68,8 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
   );
 };
 
-const SettingsView = ({ tables, menu, rates, onUpdate }: {
-  tables: Table[], menu: MenuItem[], rates: TableRates, onUpdate: () => void
+const SettingsView = ({ tables, menu, rates, webhookUrl, onUpdate, onWebhookChange }: {
+  tables: Table[], menu: MenuItem[], rates: TableRates, webhookUrl: string, onUpdate: () => void, onWebhookChange: (url: string) => void
 }) => {
   const [tab, setTab] = useState<'tables' | 'menu' | 'rates'>('tables');
   const [localMenu, setLocalMenu] = useState<MenuItem[]>(menu);
@@ -260,7 +261,7 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
               <select
                 value={localRates.billingBlock || 1}
                 onChange={(e) => updateRate('billingBlock', e.target.value)}
-                className="flex-1 bg-slate-900 border-none rounded-xl p-3 font-black text-white focus:ring-primary"
+                className="flex-1 bg-white border-none rounded-xl p-3 font-black text-primary focus:ring-primary shadow-sm"
               >
                 <option value="1">Không làm tròn (1 phút)</option>
                 <option value="5">Mỗi 5 phút</option>
@@ -272,27 +273,38 @@ const SettingsView = ({ tables, menu, rates, onUpdate }: {
           </div>
 
           {(['Pool', 'Carom', 'Snooker', 'VIP'] as Array<keyof TableRates>).map(type => (
-            <div key={type} className="bg-surface-dark p-5 rounded-3xl border border-white/5 space-y-2">
+            <div key={type} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Giá giờ {type}</label>
               <div className="flex items-center gap-3">
                 <input
                   type="number"
                   value={localRates[type]}
                   onChange={(e) => updateRate(type, e.target.value)}
-                  className="flex-1 bg-slate-900 border-none rounded-xl p-3 font-mono font-black text-primary focus:ring-primary"
+                  className="flex-1 bg-white border border-slate-200 rounded-xl p-3 font-mono font-black text-primary focus:ring-primary shadow-sm"
                 />
                 <span className="font-bold text-slate-500">đ/h</span>
               </div>
             </div>
           ))}
+
+          <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Discord Webhook URL</label>
+            <input
+              type="text"
+              value={webhookUrl}
+              onChange={(e) => onWebhookChange(e.target.value)}
+              placeholder="https://discord.com/api/webhooks/..."
+              className="w-full bg-white border border-slate-200 rounded-xl p-3 font-bold text-xs text-slate-600 focus:ring-primary shadow-sm"
+            />
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }: {
-  table: Table, rates: TableRates, menu: MenuItem[], onClose: () => void, onUpdate: () => void, onCheckoutSuccess: () => void
+const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheckoutSuccess }: {
+  table: Table, rates: TableRates, menu: MenuItem[], webhookUrl: string, onClose: () => void, onUpdate: () => void, onCheckoutSuccess: () => void
 }) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -301,8 +313,10 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
   const [bookingData, setBookingData] = useState({ customerName: '', phone: '', bookedTime: '' });
   const [localOrders, setLocalOrders] = useState<OrderItem[]>(table.orders);
   const [isSavingOrders, setIsSavingOrders] = useState(false);
+  const [hasSentPrepaidAlert, setHasSentPrepaidAlert] = useState(false);
   const [showTimeEdit, setShowTimeEdit] = useState(false);
   const [newStartTime, setNewStartTime] = useState('');
+  const [prepaidInput, setPrepaidInput] = useState('');
 
   useEffect(() => {
     setLocalOrders(table.orders);
@@ -464,6 +478,57 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
     onUpdate();
   };
 
+  const handleSetPrepaid = async () => {
+    const amount = parseInt(prepaidInput.replace(/\D/g, ''));
+    if (!amount) return;
+    await DB.updateTable(table.id, { prepaidAmount: amount });
+    onUpdate();
+    setPrepaidInput('');
+  };
+
+  const sendDiscordNotification = async () => {
+    if (!webhookUrl) return alert("Vui lòng cấu hình Webhook URL trong Cài đặt");
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: `🎱 **THÔNG BÁO TỪ BÀN ${table.id}**\n- Khách hàng: ${table.customerName || 'Khách vãng lai'}\n- Bắt đầu: ${new Date(table.startTime || '').toLocaleString()}\n- Trả trước: ${table.prepaidAmount ? table.prepaidAmount.toLocaleString() + 'đ' : 'Không'}\n- Trạng thái: Đang chơi`
+        })
+      });
+      alert("Đã gửi thông báo đến Discord!");
+    } catch (e) {
+      alert("Lỗi khi gửi thông báo: " + e);
+    }
+  };
+
+  // Calculate remaining time if prepaid
+  const prepaidSeconds = table.prepaidAmount ? (table.prepaidAmount / hourlyRate) * 3600 : 0;
+  const elapsedSeconds = duration.hrs * 3600 + duration.mins * 60;
+  const remainingSeconds = Math.max(0, prepaidSeconds - elapsedSeconds);
+  const remainingTimeStr = table.prepaidAmount
+    ? `${Math.floor(remainingSeconds / 3600)}h ${Math.floor((remainingSeconds % 3600) / 60)}m`
+    : null;
+
+  // Auto-send Discord notification when prepaid time is up
+  useEffect(() => {
+    if (table.prepaidAmount && remainingSeconds <= 0 && !hasSentPrepaidAlert && webhookUrl) {
+      const sendAlert = async () => {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: `⚠️ **HẾT GIỜ CHƠI TẠI BÀN ${table.id}**\n- Khách hàng: ${table.customerName || 'Khách vãng lai'}\n- Số tiền trả trước: ${table.prepaidAmount?.toLocaleString()}đ\n- Thời gian đã chơi: ${duration.hrs}h ${duration.mins}m\n\n@here Vui lòng kiểm tra bàn!`
+            })
+          });
+          setHasSentPrepaidAlert(true);
+        } catch (e) { console.error("Discord alert failed", e); }
+      };
+      sendAlert();
+    }
+  }, [remainingSeconds, table.prepaidAmount, hasSentPrepaidAlert, webhookUrl, duration.hrs, duration.mins, table.id, table.customerName]);
+
   return (
     <div className="fixed inset-0 bg-white/80 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
       <div className="pt-14 px-6 pb-4 border-b border-slate-200 flex items-center justify-between">
@@ -597,6 +662,58 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
                 >
                   <span className="material-icons-round text-lg">add</span>
                   THÊM MÓN
+                </button>
+              </div>
+
+              {/* Prepaid Section */}
+              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-200 space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-black text-slate-400 uppercase tracking-widest leading-none">TRẢ TRƯỚC</h3>
+                  {table.prepaidAmount && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-500">Còn lại:</span>
+                      <span className={`text-sm font-black font-mono ${remainingSeconds < 300 ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
+                        {remainingTimeStr}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {table.prepaidAmount ? (
+                  <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                    <span className="font-black text-slate-900">{table.prepaidAmount.toLocaleString()}đ</span>
+                    <button
+                      onClick={async () => { await DB.updateTable(table.id, { prepaidAmount: undefined }); onUpdate(); }}
+                      className="text-xs font-bold text-red-500 hover:text-red-600"
+                    >
+                      HỦY
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="Nhập số tiền..."
+                      value={prepaidInput}
+                      onChange={e => setPrepaidInput(e.target.value)}
+                      className="flex-1 bg-white border border-slate-200 rounded-xl p-2 text-sm font-black focus:ring-primary outline-none"
+                    />
+                    <button
+                      onClick={handleSetPrepaid}
+                      disabled={!prepaidInput}
+                      className="bg-slate-900 text-white px-4 rounded-xl font-black text-xs disabled:opacity-50"
+                    >
+                      LƯU
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  onClick={sendDiscordNotification}
+                  className="w-full py-3 bg-[#5865F2]/10 text-[#5865F2] rounded-2xl font-black text-xs hover:bg-[#5865F2]/20 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="material-icons-round text-base">notifications</span>
+                  GỬI THÔNG BÁO DISCORD
                 </button>
               </div>
 
@@ -811,6 +928,10 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
   const totalTablesPlayed = todayTransactions.length;
   const avgRevenuePerTable = totalTablesPlayed > 0 ? Math.round(totalRevenue / totalTablesPlayed) : 0;
 
+  // Calculate revenue breakdown
+  const tableRevenue = todayTransactions.reduce((sum, tx) => sum + tx.tableFee, 0);
+  const serviceRevenue = todayTransactions.reduce((sum, tx) => sum + tx.serviceFee, 0);
+
   // Top món bán chạy (từ orders trong transactions)
   const itemSales: Record<string, { name: string, quantity: number, revenue: number }> = {};
   transactions.forEach(tx => {
@@ -835,14 +956,53 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 5);
 
+  // 7 Days Revenue Chart
+  const last7Days = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().split('T')[0];
+  });
+
+  const chartData = last7Days.map(date => {
+    const revenue = transactions
+      .filter(tx => tx.endTime && tx.endTime.startsWith(date))
+      .reduce((sum, tx) => sum + tx.total, 0);
+    return { name: date.split('-').slice(1).join('/'), revenue };
+  });
+
   return (
     <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
-      <h2 className="text-3xl font-black">THỐNG KÊ HÔM NAY</h2>
+      <h2 className="text-3xl font-black">THỐNG KÊ DOANH THU</h2>
+
+      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm h-64">
+        <h3 className="text-sm font-black text-slate-500 uppercase mb-4">DOANH THU 7 NGÀY GẦN NHẤT</h3>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} dy={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} tickFormatter={(value) => `${(value / 1000)}k`} />
+            <Tooltip
+              cursor={{ fill: '#f1f5f9' }}
+              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              formatter={(value: number) => [`${value.toLocaleString()}đ`, 'Doanh thu']}
+            />
+            <Bar dataKey="revenue" fill="#3c83f6" radius={[4, 4, 0, 0]} barSize={20} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-blue-50 border border-blue-100 rounded-3xl p-4">
-          <p className="text-sm font-black text-blue-600 uppercase mb-1">DOANH THU</p>
+          <p className="text-sm font-black text-blue-600 uppercase mb-1">TỔNG DOANH THU</p>
           <p className="text-4xl font-black text-slate-900">{totalRevenue.toLocaleString()}đ</p>
+          <div className="flex justify-between items-center mt-2 border-t border-blue-200 pt-2 text-[10px] uppercase font-bold text-slate-500">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Tiền bàn</span>
+            <span className="text-slate-900">{tableRevenue.toLocaleString()}đ</span>
+          </div>
+          <div className="flex justify-between items-center mt-1 text-[10px] uppercase font-bold text-slate-500">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary"></span> Dịch vụ</span>
+            <span className="text-slate-900">{serviceRevenue.toLocaleString()}đ</span>
+          </div>
         </div>
         <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-4">
           <p className="text-sm font-black text-emerald-600 uppercase mb-1">SỐ BÀN</p>
@@ -894,6 +1054,7 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [transactionSearch, setTransactionSearch] = useState('');
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [webhookUrl, setWebhookUrl] = useState('');
 
   // Hydrate from localStorage for instant boot
   useEffect(() => {
@@ -902,10 +1063,12 @@ const App = () => {
       const c2 = localStorage.getItem('lilius_rates');
       const c3 = localStorage.getItem('lilius_menu');
       const c4 = localStorage.getItem('lilius_tx');
+      const c5 = localStorage.getItem('lilius_webhook');
       if (c1) setTables(JSON.parse(c1));
       if (c2) setRates(JSON.parse(c2));
       if (c3) setMenu(JSON.parse(c3));
       if (c4) setTransactions(JSON.parse(c4));
+      if (c5) setWebhookUrl(c5);
     } catch (e) { console.error('Cache hydration failed', e); }
   }, []);
 
@@ -1074,7 +1237,19 @@ const App = () => {
           </div>
         )}
         {currentView === 'reports' && <ReportsView transactions={transactions} tables={tables} menu={menu} />}
-        {currentView === 'settings' && <SettingsView tables={tables} menu={menu} rates={rates} onUpdate={refresh} />}
+        {currentView === 'settings' && (
+          <SettingsView
+            tables={tables}
+            menu={menu}
+            rates={rates}
+            webhookUrl={webhookUrl}
+            onUpdate={refresh}
+            onWebhookChange={(url) => {
+              setWebhookUrl(url);
+              localStorage.setItem('lilius_webhook', url);
+            }}
+          />
+        )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl border-t border-slate-200 flex items-center justify-around px-2 pb-8 pt-2 z-50 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
@@ -1101,6 +1276,7 @@ const App = () => {
           table={selectedTable}
           rates={rates}
           menu={menu}
+          webhookUrl={webhookUrl}
           onClose={() => setSelectedTable(null)}
           onUpdate={refresh}
           onCheckoutSuccess={() => setShowSuccess(true)}
@@ -1134,66 +1310,66 @@ const App = () => {
       )}
 
       {selectedTransaction && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
-          <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
+        <div className="fixed inset-0 bg-white/95 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
+          <div className="pt-14 px-6 pb-4 border-b border-slate-200 flex items-center justify-between">
             <button onClick={() => setSelectedTransaction(null)} className="p-2 -ml-2 text-slate-400"><span className="material-icons-round text-3xl">close</span></button>
             <div className="text-center">
-              <h1 className="text-lg font-black uppercase">CHI TIẾT HÓA ĐƠN</h1>
+              <h1 className="text-lg font-black uppercase text-slate-900">CHI TIẾT HÓA ĐƠN</h1>
               <p className="text-[10px] font-bold text-slate-500">{selectedTransaction.id}</p>
             </div>
             <div className="w-10"></div>
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="bg-white/5 p-6 rounded-3xl border border-white/5 space-y-4">
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4 shadow-sm">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 text-xs">Mã hóa đơn</span>
-                <span className="font-black text-xs uppercase">{selectedTransaction.id}</span>
+                <span className="text-slate-500 text-xs font-bold">Mã hóa đơn</span>
+                <span className="font-black text-xs uppercase text-slate-900">{selectedTransaction.id}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 text-xs">Bàn</span>
-                <span className="font-black text-xs uppercase">Bàn {selectedTransaction.tableName}</span>
+                <span className="text-slate-500 text-xs font-bold">Bàn</span>
+                <span className="font-black text-xs uppercase text-slate-900">Bàn {selectedTransaction.tableName}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 text-xs">Thời gian bắt đầu</span>
-                <span className="font-black text-xs">{new Date(selectedTransaction.startTime).toLocaleString()}</span>
+                <span className="text-slate-500 text-xs font-bold">Thời gian bắt đầu</span>
+                <span className="font-black text-xs text-slate-900">{new Date(selectedTransaction.startTime).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 text-xs">Thời gian kết thúc</span>
-                <span className="font-black text-xs">{new Date(selectedTransaction.endTime).toLocaleString()}</span>
+                <span className="text-slate-500 text-xs font-bold">Thời gian kết thúc</span>
+                <span className="font-black text-xs text-slate-900">{new Date(selectedTransaction.endTime).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 text-xs">Thời lượng</span>
+                <span className="text-slate-500 text-xs font-bold">Thời lượng</span>
                 <span className="font-black text-xs text-primary">{selectedTransaction.duration}</span>
               </div>
             </div>
 
             <div className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CHI TIẾT DỊCH VỤ</h3>
-              <div className="bg-white/5 rounded-3xl p-4 border border-white/5 space-y-3">
-                <div className="flex justify-between items-center pb-2 border-b border-white/5 text-[10px] text-slate-500 font-bold uppercase">
+              <div className="bg-white rounded-3xl p-4 border border-slate-200 space-y-3 shadow-sm">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100 text-[10px] text-slate-400 font-bold uppercase">
                   <span>Tên món / Tiền bàn</span>
                   <span>Thành tiền</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold">Tiền bàn ({selectedTransaction.duration})</span>
-                  <span className="text-xs font-black">{selectedTransaction.tableFee.toLocaleString()}đ</span>
+                  <span className="text-xs font-bold text-slate-900">Tiền bàn ({selectedTransaction.duration})</span>
+                  <span className="text-xs font-black text-slate-900">{selectedTransaction.tableFee.toLocaleString()}đ</span>
                 </div>
                 {selectedTransaction.orders && selectedTransaction.orders.map((o, idx) => (
                   <div key={idx} className="flex justify-between items-center">
-                    <span className="text-xs text-slate-300">{o.name} <span className="text-slate-500 text-[10px]">x{o.quantity}</span></span>
-                    <span className="text-xs font-black">{(o.price * o.quantity).toLocaleString()}đ</span>
+                    <span className="text-xs text-slate-600 font-medium">{o.name} <span className="text-slate-400 text-[10px]">x{o.quantity}</span></span>
+                    <span className="text-xs font-black text-slate-900">{(o.price * o.quantity).toLocaleString()}đ</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-primary/10 p-6 rounded-3xl border border-primary/20 flex justify-between items-center">
+            <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 flex justify-between items-center">
               <span className="text-xs font-black uppercase text-primary">TỔNG CỘNG</span>
               <span className="text-2xl font-black text-primary font-mono">{selectedTransaction.total.toLocaleString()}đ</span>
             </div>
           </div>
           <div className="p-6 pb-12">
-            <button onClick={() => setSelectedTransaction(null)} className="w-full py-4 bg-slate-800 rounded-2xl font-black text-sm text-white">ĐÓNG</button>
+            <button onClick={() => setSelectedTransaction(null)} className="w-full py-4 bg-slate-100 rounded-2xl font-black text-sm text-slate-600 active:bg-slate-200 transition-colors">ĐÓNG</button>
           </div>
         </div>
       )}

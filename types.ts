@@ -21,6 +21,7 @@ export interface Table {
   customerName?: string;
   bookedTime?: string;
   phone?: string;
+  prepaidAmount?: number;
 }
 
 export interface MenuItem {
