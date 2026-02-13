@@ -17,11 +17,10 @@ const calculateDuration = (startTimeStr: string) => {
 
 // --- Components ---
 
-const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRates, onTableClick: (t: Table) => void }) => {
+const Dashboard = ({ tables, rates, onTableClick }: { tables: Table[], rates: TableRates, onTableClick: (t: Table) => void }) => {
   const getStatusColor = (status: TableStatus) => {
     switch (status) {
       case 'PLAYING': return 'bg-primary border-primary text-white shadow-lg shadow-primary/20';
-      case 'BOOKED': return 'bg-yellow-500 border-yellow-500 text-black';
       case 'MAINTENANCE': return 'bg-red-500 border-red-500 text-white';
       default: return 'bg-slate-50 border-slate-200 text-slate-500';
     }
@@ -41,28 +40,45 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
         </div>
       </div>
 
-      {/* Grid compact: 3 cột trên mobile nhỏ, 4 cột trên mobile thường */}
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-        {tables.map(table => (
-          <div
-            key={table.id}
-            onClick={() => onTableClick(table)}
-            className={`
-              flex flex-col items-center justify-center 
-              aspect-square rounded-2xl border transition-all 
-              active:scale-90 tap-highlight-transparent
-              ${getStatusColor(table.status)}
-            `}
-          >
-            <span className="text-6xl font-black tracking-tighter">{table.id}</span>
-            {table.status === 'PLAYING' && table.startTime && (
-              <span className="text-2xl font-mono font-black opacity-100 -mt-2 tracking-tighter">
-                {new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-            <div className={`mt-1 w-1.5 h-1.5 rounded-full ${table.status === 'PLAYING' ? 'bg-white animate-pulse' : 'bg-transparent'}`}></div>
-          </div>
-        ))}
+        {tables.map(table => {
+          const startTime = table.startTime ? new Date(table.startTime) : null;
+          const diffMs = startTime ? new Date().getTime() - startTime.getTime() : 0;
+          const hourlyRate = rates[table.type] || 0;
+          const remainingSeconds = table.prepaidAmount && hourlyRate > 0
+            ? Math.max(0, Math.floor((table.prepaidAmount / hourlyRate) * 3600 - (diffMs / 1000)))
+            : null;
+
+          return (
+            <div
+              key={table.id}
+              onClick={() => onTableClick(table)}
+              className={`
+                flex flex-col items-center justify-center 
+                aspect-square rounded-3xl border transition-all relative overflow-hidden
+                active:scale-95 tap-highlight-transparent
+                ${getStatusColor(table.status)}
+              `}
+            >
+              <span className="text-4xl font-black tracking-tighter">{table.id}</span>
+
+              {table.status === 'PLAYING' && (
+                <div className="mt-1 flex flex-col items-center">
+                  {remainingSeconds !== null ? (
+                    <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full ${remainingSeconds < 300 ? 'bg-red-500 text-white animate-pulse' : 'bg-white/20 text-white'}`}>
+                      {Math.floor(remainingSeconds / 60)}m
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black opacity-80 uppercase">
+                      {new Date(table.startTime!).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+              )}
+              {table.status === 'MAINTENANCE' && <span className="text-[8px] font-black uppercase opacity-60">Bảo trì</span>}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -307,16 +323,15 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
   table: Table, rates: TableRates, menu: MenuItem[], webhookUrl: string, onClose: () => void, onUpdate: () => void, onCheckoutSuccess: () => void
 }) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
-  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showPrepaidStartForm, setShowPrepaidStartForm] = useState(false);
   const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<'All' | 'Drink' | 'Food' | 'Other'>('All');
-  const [bookingData, setBookingData] = useState({ customerName: '', phone: '', bookedTime: '' });
   const [localOrders, setLocalOrders] = useState<OrderItem[]>(table.orders);
   const [isSavingOrders, setIsSavingOrders] = useState(false);
   const [hasSentPrepaidAlert, setHasSentPrepaidAlert] = useState(false);
   const [showTimeEdit, setShowTimeEdit] = useState(false);
   const [newStartTime, setNewStartTime] = useState('');
-  const [prepaidInput, setPrepaidInput] = useState('');
+  const [prepaidAmountInput, setPrepaidAmountInput] = useState('');
 
   useEffect(() => {
     setLocalOrders(table.orders);
@@ -355,30 +370,45 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
   const serviceFee = localOrders.reduce((sum, o) => sum + (o.price * o.quantity), 0);
   const total = tableFee + serviceFee;
 
+  // Tính thời gian còn lại nếu có trả trước
+  const remainingSeconds = table.prepaidAmount && hourlyRate > 0
+    ? Math.max(0, Math.floor((table.prepaidAmount / hourlyRate) * 3600 - (diffMs / 1000)))
+    : 0;
+
+  const remainingTimeStr = (() => {
+    const s = remainingSeconds;
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${h}h ${m}m ${sec}s`;
+  })();
+
+
   const filteredMenu = menuCategoryFilter === 'All'
     ? menu
     : menu.filter(item => item.category === menuCategoryFilter);
 
   const handleStart = async () => {
-    onClose(); // Close instantly for better UX
+    onClose();
     await DB.updateTable(table.id, { status: 'PLAYING', startTime: new Date().toISOString() });
     onUpdate();
   };
 
-  const handleBookTable = async () => {
-    if (!bookingData.customerName || !bookingData.phone || !bookingData.bookedTime) {
-      alert('Vui lòng điền đầy đủ thông tin đặt bàn');
+  const handlePrepaidStart = async () => {
+    const amount = parseInt(prepaidAmountInput.replace(/\D/g, ''));
+    if (!amount) {
+      alert('Vui lòng nhập số tiền trả trước');
       return;
     }
+    onClose();
     await DB.updateTable(table.id, {
-      status: 'BOOKED',
-      customerName: bookingData.customerName,
-      phone: bookingData.phone,
-      bookedTime: bookingData.bookedTime
+      status: 'PLAYING',
+      startTime: new Date().toISOString(),
+      prepaidAmount: amount
     });
-    setShowBookingForm(false);
-    setBookingData({ customerName: '', phone: '', bookedTime: '' });
     onUpdate();
+    setPrepaidAmountInput('');
+    setShowPrepaidStartForm(false);
   };
 
   const handleSetMaintenance = async () => {
@@ -456,17 +486,6 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
     }
   };
 
-  const handleStartFromBooking = async () => {
-    onClose(); // Đóng ngay để mượt
-    await DB.updateTable(table.id, {
-      status: 'PLAYING',
-      startTime: new Date().toISOString(),
-      customerName: undefined,
-      phone: undefined,
-      bookedTime: undefined
-    });
-    onUpdate();
-  };
 
   const handleUpdateTime = async () => {
     if (!newStartTime || !table.startTime) return;
@@ -478,13 +497,6 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
     onUpdate();
   };
 
-  const handleSetPrepaid = async () => {
-    const amount = parseInt(prepaidInput.replace(/\D/g, ''));
-    if (!amount) return;
-    await DB.updateTable(table.id, { prepaidAmount: amount });
-    onUpdate();
-    setPrepaidInput('');
-  };
 
   const sendDiscordNotification = async () => {
     if (!webhookUrl) return alert("Vui lòng cấu hình Webhook URL trong Cài đặt");
@@ -502,39 +514,20 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
     }
   };
 
-  // Calculate remaining time if prepaid
-  const prepaidSeconds = table.prepaidAmount ? (table.prepaidAmount / hourlyRate) * 3600 : 0;
-  const elapsedSeconds = duration.hrs * 3600 + duration.mins * 60;
-  const remainingSeconds = Math.max(0, prepaidSeconds - elapsedSeconds);
-  const remainingTimeStr = table.prepaidAmount
-    ? `${Math.floor(remainingSeconds / 3600)}h ${Math.floor((remainingSeconds % 3600) / 60)}m`
-    : null;
-
-  // Auto-send Discord notification when prepaid time is up
-  useEffect(() => {
-    if (table.prepaidAmount && remainingSeconds <= 0 && !hasSentPrepaidAlert && webhookUrl) {
-      const sendAlert = async () => {
-        try {
-          await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: `⚠️ **HẾT GIỜ CHƠI TẠI BÀN ${table.id}**\n- Khách hàng: ${table.customerName || 'Khách vãng lai'}\n- Số tiền trả trước: ${table.prepaidAmount?.toLocaleString()}đ\n- Thời gian đã chơi: ${duration.hrs}h ${duration.mins}m\n\n@here Vui lòng kiểm tra bàn!`
-            })
-          });
-          setHasSentPrepaidAlert(true);
-        } catch (e) { console.error("Discord alert failed", e); }
-      };
-      sendAlert();
-    }
-  }, [remainingSeconds, table.prepaidAmount, hasSentPrepaidAlert, webhookUrl, duration.hrs, duration.mins, table.id, table.customerName]);
 
   return (
     <div className="fixed inset-0 bg-white/80 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
       <div className="pt-14 px-6 pb-4 border-b border-slate-200 flex items-center justify-between">
         <button onClick={onClose} className="p-2 -ml-2 text-slate-400"><span className="material-icons-round text-3xl">close</span></button>
         <div className="text-center">
-          <h1 className="text-2xl font-black uppercase">BÀN {table.id}</h1>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-2xl font-black uppercase">BÀN {table.id}</h1>
+            {table.prepaidAmount && (
+              <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${remainingSeconds <= 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-500 text-white'}`}>
+                {remainingSeconds <= 0 ? 'HẾT GIỜ' : 'TRẢ TRƯỚC'}
+              </span>
+            )}
+          </div>
           <p className="text-xs font-bold text-slate-500">{table.type} • {rates[table.type]?.toLocaleString()}đ/h</p>
         </div>
         <div className="w-10"></div>
@@ -555,26 +548,8 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
             </div>
             <div className="w-full space-y-3">
               <button onClick={handleStart} className="w-full py-6 bg-primary rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-transform text-white">MỞ BÀN NGAY</button>
-              <button onClick={() => setShowBookingForm(true)} className="w-full py-5 bg-amber-50 text-amber-600 border border-amber-200 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BÀN TRƯỚC</button>
+              <button onClick={() => setShowPrepaidStartForm(true)} className="w-full py-5 bg-amber-50 text-amber-600 border border-amber-200 rounded-3xl font-black text-base active:scale-95 transition-transform">TRẢ TIỀN TRƯỚC & MỞ BÀN</button>
               <button onClick={() => setShowMaintenanceConfirm(true)} className="w-full py-5 bg-red-50 text-red-600 border border-red-200 rounded-3xl font-black text-base active:scale-95 transition-transform">ĐẶT BẢO TRÌ</button>
-            </div>
-          </div>
-        ) : table.status === 'BOOKED' ? (
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-            <div className="w-24 h-24 bg-yellow-500/10 rounded-full flex items-center justify-center">
-              <span className="material-icons-round text-5xl text-yellow-400">event_available</span>
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-amber-600">BÀN ĐÃ ĐƯỢC ĐẶT</h3>
-              <div className="mt-4 space-y-2 text-left bg-slate-100 p-4 rounded-2xl">
-                <p className="text-sm"><span className="text-slate-500">Khách hàng:</span> <span className="font-black text-slate-900">{table.customerName}</span></p>
-                <p className="text-sm"><span className="text-slate-500">SĐT:</span> <span className="font-black text-slate-900">{table.phone}</span></p>
-                <p className="text-sm"><span className="text-slate-500">Giờ đặt:</span> <span className="font-black text-amber-600">{table.bookedTime}</span></p>
-              </div>
-            </div>
-            <div className="w-full space-y-3">
-              <button onClick={handleStartFromBooking} className="w-full py-5 bg-primary rounded-3xl font-black text-lg shadow-xl text-white">BẮT ĐẦU CHƠI</button>
-              <button onClick={async () => { await DB.updateTable(table.id, { status: 'EMPTY', customerName: undefined, phone: undefined, bookedTime: undefined }); onUpdate(); }} className="w-full py-4 bg-slate-100 text-slate-500 rounded-3xl font-black text-sm active:bg-slate-200">HỦY ĐẶT BÀN</button>
             </div>
           </div>
         ) : table.status === 'MAINTENANCE' ? (
@@ -665,57 +640,6 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
                 </button>
               </div>
 
-              {/* Prepaid Section */}
-              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-200 space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-black text-slate-400 uppercase tracking-widest leading-none">TRẢ TRƯỚC</h3>
-                  {table.prepaidAmount && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-500">Còn lại:</span>
-                      <span className={`text-sm font-black font-mono ${remainingSeconds < 300 ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
-                        {remainingTimeStr}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {table.prepaidAmount ? (
-                  <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-                    <span className="font-black text-slate-900">{table.prepaidAmount.toLocaleString()}đ</span>
-                    <button
-                      onClick={async () => { await DB.updateTable(table.id, { prepaidAmount: undefined }); onUpdate(); }}
-                      className="text-xs font-bold text-red-500 hover:text-red-600"
-                    >
-                      HỦY
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="Nhập số tiền..."
-                      value={prepaidInput}
-                      onChange={e => setPrepaidInput(e.target.value)}
-                      className="flex-1 bg-white border border-slate-200 rounded-xl p-2 text-sm font-black focus:ring-primary outline-none"
-                    />
-                    <button
-                      onClick={handleSetPrepaid}
-                      disabled={!prepaidInput}
-                      className="bg-slate-900 text-white px-4 rounded-xl font-black text-xs disabled:opacity-50"
-                    >
-                      LƯU
-                    </button>
-                  </div>
-                )}
-
-                <button
-                  onClick={sendDiscordNotification}
-                  className="w-full py-3 bg-[#5865F2]/10 text-[#5865F2] rounded-2xl font-black text-xs hover:bg-[#5865F2]/20 transition-colors flex items-center justify-center gap-2"
-                >
-                  <span className="material-icons-round text-base">notifications</span>
-                  GỬI THÔNG BÁO DISCORD
-                </button>
-              </div>
 
               <div className="space-y-2">
                 {localOrders.length === 0 ? (
@@ -842,48 +766,55 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
         </div>
       )}
 
-      {showBookingForm && (
-        <div className="absolute inset-0 bg-background-dark z-[110] flex flex-col animate-in fade-in zoom-in duration-200">
-          <div className="pt-14 px-6 pb-4 border-b border-white/5 flex items-center justify-between">
-            <button onClick={() => { setShowBookingForm(false); setBookingData({ customerName: '', phone: '', bookedTime: '' }); }} className="text-slate-400 p-2"><span className="material-icons-round text-3xl">arrow_back</span></button>
-            <h2 className="font-black">ĐẶT BÀN TRƯỚC</h2>
+      {showPrepaidStartForm && (
+        <div className="absolute inset-0 bg-white z-[110] flex flex-col animate-in fade-in zoom-in duration-200 px-6">
+          <div className="pt-14 pb-4 border-b border-slate-100 flex items-center justify-between">
+            <button onClick={() => { setShowPrepaidStartForm(false); setPrepaidAmountInput(''); }} className="text-slate-400 p-2"><span className="material-icons-round text-3xl">arrow_back</span></button>
+            <h2 className="text-xl font-black uppercase">TRẢ TIỀN TRƯỚC</h2>
             <div className="w-10"></div>
           </div>
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            <div>
-              <label className="text-xs font-black text-slate-500 uppercase mb-2 block">Tên khách hàng</label>
-              <input
-                type="text"
-                value={bookingData.customerName}
-                onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
-                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 font-black text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Nhập tên khách hàng"
-              />
+          <div className="flex-1 flex flex-col justify-center space-y-8">
+            <div className="text-center space-y-2">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="material-icons-round text-4xl text-primary">payments</span>
+              </div>
+              <h3 className="text-xl font-black text-slate-900">NHẬP SỐ TIỀN TRẢ TRƯỚC</h3>
+              <p className="text-slate-500 text-sm font-bold">Hệ thống sẽ tự động thông báo khi hết thời gian tương ứng</p>
             </div>
-            <div>
-              <label className="text-xs font-black text-slate-500 uppercase mb-2 block">Số điện thoại</label>
-              <input
-                type="tel"
-                value={bookingData.phone}
-                onChange={(e) => setBookingData({ ...bookingData, phone: e.target.value })}
-                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 font-black text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Nhập số điện thoại"
-              />
+
+            <div className="space-y-6">
+              <div className="relative">
+                <input
+                  type="number"
+                  autoFocus
+                  placeholder="Ví dụ: 50,000"
+                  value={prepaidAmountInput}
+                  onChange={(e) => setPrepaidAmountInput(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 text-3xl font-black text-center text-primary focus:border-primary focus:ring-0 outline-none transition-all"
+                />
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xl">VNĐ</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[10000, 20000, 50000, 100000].map(val => (
+                  <button
+                    key={val}
+                    onClick={() => setPrepaidAmountInput(val.toString())}
+                    className="py-4 bg-slate-50 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-100 active:scale-95 transition-all"
+                  >
+                    {val.toLocaleString()}đ
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-black text-slate-500 uppercase mb-2 block">Giờ đặt</label>
-              <input
-                type="time"
-                value={bookingData.bookedTime}
-                onChange={(e) => setBookingData({ ...bookingData, bookedTime: e.target.value })}
-                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 font-black text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
+
             <button
-              onClick={handleBookTable}
-              className="w-full py-5 bg-yellow-500 rounded-3xl font-black text-lg shadow-xl mt-6"
+              onClick={handlePrepaidStart}
+              disabled={!prepaidAmountInput}
+              className="w-full py-6 bg-primary text-white rounded-3xl font-black text-xl shadow-xl shadow-primary/20 disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-3"
             >
-              XÁC NHẬN ĐẶT BÀN
+              <span className="material-icons-round">play_circle</span>
+              BẮT ĐẦU CHƠI
             </button>
           </div>
         </div>
@@ -970,6 +901,8 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
     return { name: date.split('-').slice(1).join('/'), revenue };
   });
 
+  const [showRevenueDetail, setShowRevenueDetail] = useState(false);
+
   return (
     <div className="p-4 h-full overflow-y-auto pb-32 space-y-6">
       <h2 className="text-3xl font-black">THỐNG KÊ DOANH THU</h2>
@@ -991,8 +924,14 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
         </ResponsiveContainer>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-blue-50 border border-blue-100 rounded-3xl p-4">
+      <div className="grid grid-cols-10 gap-3">
+        <div
+          onClick={() => setShowRevenueDetail(true)}
+          className="col-span-8 bg-blue-50 border border-blue-100 rounded-3xl p-4 active:scale-95 transition-transform cursor-pointer relative group overflow-hidden"
+        >
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="material-icons-round text-blue-400 text-sm">open_in_new</span>
+          </div>
           <p className="text-sm font-black text-blue-600 uppercase mb-1">TỔNG DOANH THU</p>
           <p className="text-4xl font-black text-slate-900">{totalRevenue.toLocaleString()}đ</p>
           <div className="flex justify-between items-center mt-2 border-t border-blue-200 pt-2 text-[10px] uppercase font-bold text-slate-500">
@@ -1004,36 +943,97 @@ const ReportsView = ({ transactions, tables, menu }: { transactions: Transaction
             <span className="text-slate-900">{serviceRevenue.toLocaleString()}đ</span>
           </div>
         </div>
-        <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-4">
-          <p className="text-sm font-black text-emerald-600 uppercase mb-1">SỐ BÀN</p>
-          <p className="text-4xl font-black text-slate-900">{totalTablesPlayed}</p>
+
+        <div className="col-span-2 bg-emerald-50 border border-emerald-100 rounded-3xl p-4 flex flex-col justify-center">
+          <p className="text-[10px] font-black text-emerald-600 uppercase mb-1 leading-none">SỐ BÀN</p>
+          <p className="text-xl font-black text-slate-900 leading-none">{totalTablesPlayed}</p>
         </div>
-        <div className="bg-amber-50 border border-amber-100 rounded-3xl p-4">
-          <p className="text-sm font-black text-amber-600 uppercase mb-1">TB/BÀN</p>
-          <p className="text-4xl font-black text-slate-900">{avgRevenuePerTable.toLocaleString()}đ</p>
+
+        <div className="col-span-8 bg-amber-50 border border-amber-100 rounded-3xl p-4">
+          <p className="text-sm font-black text-amber-600 uppercase mb-1">TRUNG BÌNH / BÀN</p>
+          <p className="text-2xl font-black text-slate-900">{avgRevenuePerTable.toLocaleString()}đ</p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4">
-          <p className="text-sm font-black text-slate-500 uppercase mb-1">ĐANG CHƠI</p>
-          <p className="text-4xl font-black text-slate-900">{tables.filter(t => t.status === 'PLAYING').length}</p>
+
+        <div className="col-span-2 bg-slate-50 border border-slate-200 rounded-3xl p-4 flex flex-col justify-center">
+          <p className="text-[10px] font-black text-slate-500 uppercase mb-1 leading-none">ĐANG CHƠI</p>
+          <p className="text-xl font-black text-slate-900 leading-none">{tables.filter(t => t.status === 'PLAYING').length}</p>
         </div>
       </div>
 
-      {topItems.length > 0 && (
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-          <h3 className="text-lg font-black mb-4 uppercase tracking-tighter">MÓN BÁN CHẠY</h3>
-          <div className="space-y-4">
-            {topItems.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <span className="text-base font-black text-primary w-6">{idx + 1}.</span>
-                  <span className="text-lg font-bold text-slate-900">{item.name}</span>
+      {
+        topItems.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+            <h3 className="text-lg font-black mb-4 uppercase tracking-tighter">MÓN BÁN CHẠY</h3>
+            <div className="space-y-4">
+              {topItems.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <span className="text-base font-black text-primary w-6">{idx + 1}.</span>
+                    <span className="text-lg font-bold text-slate-900">{item.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-base font-black text-slate-900">{item.quantity} đơn</p>
+                    <p className="text-[10px] text-slate-500 font-bold">{item.revenue.toLocaleString()}đ</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-base font-black text-slate-900">{item.quantity} đơn</p>
-                  <p className="text-[10px] text-slate-500 font-bold">{item.revenue.toLocaleString()}đ</p>
-                </div>
+              ))}
+            </div>
+          </div>
+        )
+      }
+      {showRevenueDetail && (
+        <div className="fixed inset-0 bg-white/95 backdrop-blur-xl z-[100] flex flex-col animate-in slide-in-from-bottom duration-300">
+          <div className="pt-14 px-6 pb-4 border-b border-slate-200 flex items-center justify-between">
+            <button onClick={() => setShowRevenueDetail(false)} className="p-2 -ml-2 text-slate-400"><span className="material-icons-round text-3xl">close</span></button>
+            <div className="text-center">
+              <h1 className="text-lg font-black uppercase text-slate-900">CHI TIẾT DOANH THU</h1>
+              <p className="text-[10px] font-bold text-slate-500">{new Date().toLocaleDateString('vi-VN')}</p>
+            </div>
+            <div className="w-10"></div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-8">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-200">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">TIỀN BÀN</p>
+                <p className="text-2xl font-black text-slate-900">{tableRevenue.toLocaleString()}đ</p>
+                <p className="text-xs font-bold text-slate-400 mt-1">{totalRevenue > 0 ? ((tableRevenue / totalRevenue) * 100).toFixed(1) : 0}%</p>
               </div>
-            ))}
+              <div className="bg-primary/5 p-4 rounded-3xl border border-primary/10">
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">DỊCH VỤ</p>
+                <p className="text-2xl font-black text-primary">{serviceRevenue.toLocaleString()}đ</p>
+                <p className="text-xs font-bold text-primary/60 mt-1">{totalRevenue > 0 ? ((serviceRevenue / totalRevenue) * 100).toFixed(1) : 0}%</p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4">DOANH THU MÓN ĂN</h3>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="p-4 font-black text-slate-400 uppercase text-[10px]">Tên món</th>
+                      <th className="p-4 font-black text-slate-400 uppercase text-[10px] text-right">SL</th>
+                      <th className="p-4 font-black text-slate-400 uppercase text-[10px] text-right">Tổng</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {Object.values(itemSales).sort((a, b) => b.revenue - a.revenue).map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="p-4 font-bold text-slate-900">{item.name}</td>
+                        <td className="p-4 font-bold text-slate-500 text-right">{item.quantity}</td>
+                        <td className="p-4 font-black text-slate-900 text-right">{item.revenue.toLocaleString()}đ</td>
+                      </tr>
+                    ))}
+                    {Object.keys(itemSales).length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="p-8 text-center text-slate-400 italic font-bold">Chưa có dữ liệu món ăn hôm nay</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1071,6 +1071,37 @@ const App = () => {
       if (c5) setWebhookUrl(c5);
     } catch (e) { console.error('Cache hydration failed', e); }
   }, []);
+
+  const [notifiedTables, setNotifiedTables] = useState<Set<string>>(new Set());
+
+  // Background monitor for prepaid tables
+  useEffect(() => {
+    tables.forEach(table => {
+      if (table.status === 'PLAYING' && table.prepaidAmount && !notifiedTables.has(table.id) && webhookUrl) {
+        const startTime = table.startTime ? new Date(table.startTime) : null;
+        if (!startTime) return;
+        const diffMs = new Date().getTime() - startTime.getTime();
+        const hourlyRate = rates[table.type] || 0;
+        const remainingSeconds = hourlyRate > 0 ? (table.prepaidAmount / hourlyRate) * 3600 - (diffMs / 1000) : 1;
+
+        if (remainingSeconds <= 0) {
+          const sendAlert = async () => {
+            try {
+              await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `⚠️ **HẾT GIỜ CHƠI TẠI BÀN ${table.id}**\n- Số tiền trả trước: ${table.prepaidAmount?.toLocaleString()}đ\n- Loại bàn: ${table.type}\n\n@here Vui lòng kiểm tra bàn!`
+                })
+              });
+              setNotifiedTables(prev => new Set(prev).add(table.id));
+            } catch (e) { console.error("Global alert failed", e); }
+          };
+          sendAlert();
+        }
+      }
+    });
+  }, [tables, tick, webhookUrl, rates, notifiedTables]);
 
   const refresh = async (isInitial = false) => {
     // Only show loading if we have absolutely no data cached on first load
