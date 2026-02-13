@@ -2,6 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DB_FILE = path.join(__dirname, '..', 'data', 'db.json');
 
 dotenv.config();
 
@@ -28,7 +35,8 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Kiểm tra kết nối database ngay khi khởi động
+// Check database connection
+let useFileDB = false;
 pool.getConnection()
   .then(conn => {
     console.log('Successfully connected to MySQL');
@@ -37,6 +45,8 @@ pool.getConnection()
   .catch(err => {
     console.error('CRITICAL: Could not connect to MySQL. Is it running?');
     console.error('Error details:', err.message);
+    console.log('Switching to local JSON file storage (data/db.json)...');
+    useFileDB = true;
   });
 
 // Simple key-value store table to persist JSON blobs (similar to localStorage)
@@ -69,27 +79,67 @@ async function ensureKvTable() {
 }
 
 async function getValue(key) {
-  const [rows] = await pool.query(
-    `SELECT value FROM \`${DB_NAME}\`.kv_store WHERE key_name = ?`,
-    [key],
-  );
-  if (!rows.length) return null;
-  const raw = rows[0].value;
+  if (useFileDB) {
+    if (!fs.existsSync(DB_FILE)) return null;
+    try {
+      const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      return data[key] || null;
+    } catch {
+      return null;
+    }
+  }
   try {
-    return typeof raw === 'string' ? JSON.parse(raw) : raw;
-  } catch {
-    return null;
+    const [rows] = await pool.query(
+      `SELECT value FROM \`${DB_NAME}\`.kv_store WHERE key_name = ?`,
+      [key],
+    );
+    if (!rows.length) return null;
+    const raw = rows[0].value;
+    try {
+      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch {
+      return null;
+    }
+  } catch (err) {
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      console.log('Database connection lost. Switching to local JSON file storage...');
+      useFileDB = true;
+      return getValue(key);
+    }
+    throw err;
   }
 }
 
 async function setValue(key, value) {
-  const json = JSON.stringify(value ?? null);
-  await pool.query(
-    `INSERT INTO \`${DB_NAME}\`.kv_store (key_name, value)
-     VALUES (?, ?)
-     ON DUPLICATE KEY UPDATE value = VALUES(value)`,
-    [key, json],
-  );
+  if (useFileDB) {
+    let data = {};
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      } catch (e) {
+        data = {};
+      }
+    }
+    data[key] = value;
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+    return;
+  }
+  try {
+    const json = JSON.stringify(value ?? null);
+    await pool.query(
+      `INSERT INTO \`${DB_NAME}\`.kv_store (key_name, value)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+      [key, json],
+    );
+  } catch (err) {
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      console.log('Database connection lost. Switching to local JSON file storage...');
+      useFileDB = true;
+      return setValue(key, value);
+    }
+    throw err;
+  }
 }
 
 // --- Seed data (tương tự localStorage hiện tại) ---
@@ -130,7 +180,18 @@ const router = express.Router();
 // Khởi tạo dữ liệu lần đầu (seed giống localStorage cũ)
 router.post('/init', async (req, res) => {
   try {
-    await ensureKvTable();
+    if (!useFileDB) {
+      try {
+        await ensureKvTable();
+      } catch (err) {
+        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+          console.log('Database connection failed during init. Switching to local JSON file storage...');
+          useFileDB = true;
+        } else {
+          throw err;
+        }
+      }
+    }
     const existingTables = await getValue(DB_KEYS.TABLES);
     if (!existingTables || !Array.isArray(existingTables) || existingTables.length === 0) {
       await setValue(DB_KEYS.TABLES, createInitialTables());
@@ -244,7 +305,9 @@ router.post('/transactions', async (req, res) => {
 // Reset toàn bộ dữ liệu
 router.post('/reset', async (req, res) => {
   try {
-    await ensureKvTable();
+    if (!useFileDB) {
+      await ensureKvTable();
+    }
     await setValue(DB_KEYS.TABLES, createInitialTables());
     await setValue(DB_KEYS.RATES, INITIAL_RATES);
     await setValue(DB_KEYS.MENU, INITIAL_MENU);

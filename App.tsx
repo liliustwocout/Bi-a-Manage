@@ -54,6 +54,11 @@ const Dashboard = ({ tables, onTableClick }: { tables: Table[], rates: TableRate
             `}
           >
             <span className="text-base font-black truncate px-1">{table.id}</span>
+            {table.status === 'PLAYING' && table.startTime && (
+              <span className="text-[10px] font-mono font-bold mt-1 scale-90 opacity-90">
+                {new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
             <div className={`mt-1 w-1 h-1 rounded-full ${table.status === 'PLAYING' ? 'bg-white animate-pulse' : 'bg-transparent'}`}></div>
           </div>
         ))}
@@ -505,14 +510,20 @@ const TableModal = ({ table, rates, menu, onClose, onUpdate, onCheckoutSuccess }
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 p-4 rounded-3xl border border-white/5 text-center">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">GIỜ CHƠI</p>
-                <p className="text-2xl font-black font-mono text-primary">{duration.hrs.toString().padStart(2, '0')}:{duration.mins.toString().padStart(2, '0')}</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
+                <p className="text-[9px] font-bold text-slate-500 uppercase">MỞ BÀN</p>
+                <p className="text-lg font-black font-mono text-emerald-400">
+                  {table.startTime ? new Date(table.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                </p>
               </div>
-              <div className="bg-white/5 p-4 rounded-3xl border border-white/5 text-center">
+              <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
+                <p className="text-[9px] font-bold text-slate-500 uppercase">GIỜ CHƠI</p>
+                <p className="text-lg font-black font-mono text-primary">{duration.hrs.toString().padStart(2, '0')}:{duration.mins.toString().padStart(2, '0')}</p>
+              </div>
+              <div className="bg-white/5 p-3 rounded-3xl border border-white/5 text-center">
                 <p className="text-[9px] font-bold text-slate-500 uppercase">TIỀN BÀN</p>
-                <p className="text-2xl font-black font-mono">{tableFee.toLocaleString()}đ</p>
+                <p className="text-lg font-black font-mono">{tableFee.toLocaleString()}đ</p>
               </div>
             </div>
 
