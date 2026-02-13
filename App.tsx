@@ -390,7 +390,11 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
 
   const handleStart = async () => {
     onClose();
-    await DB.updateTable(table.id, { status: 'PLAYING', startTime: new Date().toISOString() });
+    await DB.updateTable(table.id, {
+      status: 'PLAYING',
+      startTime: new Date().toISOString(),
+      prepaidAmount: undefined // Reset trạng thái trả trước cho phiên chơi mới
+    });
     onUpdate();
   };
 
@@ -412,13 +416,23 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
   };
 
   const handleSetMaintenance = async () => {
-    await DB.updateTable(table.id, { status: 'MAINTENANCE' });
+    await DB.updateTable(table.id, {
+      status: 'MAINTENANCE',
+      startTime: undefined,
+      orders: [],
+      prepaidAmount: undefined
+    });
     setShowMaintenanceConfirm(false);
     onUpdate();
   };
 
   const handleRemoveMaintenance = async () => {
-    await DB.updateTable(table.id, { status: 'EMPTY' });
+    await DB.updateTable(table.id, {
+      status: 'EMPTY',
+      startTime: undefined,
+      orders: [],
+      prepaidAmount: undefined
+    });
     onUpdate();
   };
 
@@ -477,7 +491,8 @@ const TableModal = ({ table, rates, menu, webhookUrl, onClose, onUpdate, onCheck
         orders: [],
         customerName: undefined,
         phone: undefined,
-        bookedTime: undefined
+        bookedTime: undefined,
+        prepaidAmount: undefined // Reset số tiền trả trước khi thanh toán
       });
       onUpdate();
     } catch (e) {
