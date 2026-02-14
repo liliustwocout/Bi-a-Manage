@@ -59,7 +59,7 @@ const Dashboard = ({ tables, rates, onTableClick }: { tables: Table[], rates: Ta
             >
               {table.status === 'PLAYING' ? (
                 <>
-                  <span className="absolute text-6xl font-black tracking-tighter ">
+                  <span className="absolute top-10 text-6xl font-black tracking-tighter ">
                     {table.id}
                   </span>
                   <span className="absolute bottom-3 text-4xl font-black font-mono leading-none text-green-500">
@@ -1215,19 +1215,19 @@ const App = () => {
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl border-t border-slate-200 flex items-center justify-around px-2 pb-8 pt-2 z-50 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
         <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'dashboard' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-3xl">grid_view</span>
-          <span className="text-2xl font-black uppercase">SƠ ĐỒ</span>
+          <span className="text-xl font-black uppercase">SƠ ĐỒ</span>
         </button>
         <button onClick={() => setCurrentView('history')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'history' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-3xl">history</span>
-          <span className="text-2xl font-black uppercase">LỊCH SỬ</span>
+          <span className="text-xl font-black uppercase">LỊCH SỬ</span>
         </button>
         <button onClick={() => setCurrentView('reports')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'reports' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-3xl">bar_chart</span>
-          <span className="text-2xl font-black uppercase">THỐNG KÊ</span>
+          <span className="text-xl font-black uppercase">THỐNG KÊ</span>
         </button>
         <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'settings' ? 'text-primary' : 'text-slate-400'}`}>
           <span className="material-icons-round text-3xl">settings</span>
-          <span className="text-2xl font-black uppercase">QUẢN LÝ</span>
+          <span className="text-xl font-black uppercase">QUẢN LÝ</span>
         </button>
       </nav>
 
