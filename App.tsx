@@ -59,7 +59,7 @@ const Dashboard = ({ tables, rates, onTableClick }: { tables: Table[], rates: Ta
             >
               {table.status === 'PLAYING' ? (
                 <>
-                  <span className="absolute top-10 text-6xl font-black tracking-tighter ">
+                  <span className="absolute top-5 text-6xl font-black tracking-tighter ">
                     {table.id}
                   </span>
                   <span className="absolute bottom-3 text-4xl font-black font-mono leading-none text-green-500">
