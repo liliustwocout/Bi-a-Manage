@@ -224,7 +224,7 @@ const SettingsView = ({ tables, menu, rates, webhookUrl, onUpdate, onWebhookChan
                 <input
                   value={m.name}
                   onChange={(e) => updateMenuItem(m.id, { name: e.target.value })}
-                  className="bg-transparent border-none p-0 font-black text-xl w-full focus:ring-0 text-white"
+                  className="bg-transparent border-none p-0 font-black text-xl w-full focus:ring-0 text-slate-900"
                   placeholder="Tên món"
                 />
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -1068,21 +1068,19 @@ const App = () => {
   };
 
   useEffect(() => {
-    let interval: number | null = null;
-
-    (async () => {
-      await DB.init();
-      await refresh(true);
-      interval = window.setInterval(async () => {
-        setTick(t => t + 1);
-        await refresh();
-      }, 10000); // Refresh mỗi 10 giây
-    })();
-
-    return () => {
-      if (interval !== null) clearInterval(interval);
-    };
+    DB.init().then(() => refresh(true));
   }, []);
+
+  useEffect(() => {
+    if (currentView !== 'dashboard') return;
+
+    const interval = setInterval(async () => {
+      setTick(t => t + 1);
+      await refresh();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [currentView]);
 
   useEffect(() => {
     if (showSuccess) {
