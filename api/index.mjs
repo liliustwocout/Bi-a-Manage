@@ -302,6 +302,19 @@ router.post('/transactions', async (req, res) => {
   }
 });
 
+router.delete('/transactions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const txs = (await getValue(DB_KEYS.TRANSACTIONS)) || [];
+    const next = txs.filter(tx => tx.id !== id);
+    await setValue(DB_KEYS.TRANSACTIONS, next);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error in DELETE /transactions/:id:', err);
+    res.status(500).json({ error: err.message || 'Internal server error', code: err.code });
+  }
+});
+
 // Reset toàn bộ dữ liệu
 router.post('/reset', async (req, res) => {
   try {

@@ -45,6 +45,15 @@ async function apiPost<TBody = unknown>(path: string, body?: TBody): Promise<voi
   }
 }
 
+async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    throw new Error(`DELETE ${path} failed with status ${res.status}`);
+  }
+}
+
 export const DB = {
   async init() {
     // Gọi backend để đảm bảo đã có bảng và dữ liệu seed
@@ -95,6 +104,10 @@ export const DB = {
 
   async addTransaction(tx: Transaction): Promise<void> {
     await apiPost('/transactions', tx);
+  },
+
+  async deleteTransaction(id: string): Promise<void> {
+    await apiDelete(`/transactions/${id}`);
   },
 
   async clearAll(): Promise<void> {

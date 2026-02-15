@@ -1119,6 +1119,20 @@ const App = () => {
     return filtered;
   }, [transactions, transactionFilter, transactionSearch]);
 
+  const handleDeleteTransaction = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (confirm('Xóa giao dịch này?')) {
+      try {
+        await DB.deleteTransaction(id);
+        if (selectedTransaction?.id === id) setSelectedTransaction(null);
+        await refresh();
+      } catch (err) {
+        alert('Lỗi khi xóa giao dịch');
+        console.error(err);
+      }
+    }
+  };
+
   return (
     <div className="flex h-screen bg-white text-slate-900 font-display overflow-hidden flex-col pb-14">
       <header className="pt-2 pb-2 px-6 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center justify-between z-40">
@@ -1179,16 +1193,24 @@ const App = () => {
                   <div
                     key={tx.id}
                     onClick={() => setSelectedTransaction(tx)}
-                    className="bg-white p-4 rounded-3xl border border-slate-200 flex justify-between items-center active:scale-95 transition-all tap-highlight-transparent shadow-sm"
+                    className="bg-white p-4 rounded-3xl border border-slate-200 flex justify-between items-center active:scale-95 transition-all tap-highlight-transparent shadow-sm relative group"
                   >
                     <div>
                       <p className="font-black text-xl mb-0.5">Bàn {tx.tableName}</p>
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-tighter">{tx.duration} • {tx.endTime ? new Date(tx.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</p>
                       <p className="text-[10px] text-slate-600 mt-1">{tx.id}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-black text-2xl text-primary font-mono">{tx.total.toLocaleString()}đ</p>
-                      <p className="text-[10px] font-black text-accent-emerald uppercase tracking-widest">{tx.status}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-black text-2xl text-primary font-mono">{tx.total.toLocaleString()}đ</p>
+                        <p className="text-[10px] font-black text-accent-emerald uppercase tracking-widest">{tx.status}</p>
+                      </div>
+                      <button
+                        onClick={(e) => handleDeleteTransaction(tx.id, e)}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <span className="material-icons-round">delete</span>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1328,8 +1350,14 @@ const App = () => {
               <span className="text-2xl font-black text-primary font-mono">{selectedTransaction.total.toLocaleString()}đ</span>
             </div>
           </div>
-          <div className="p-6 pb-12">
-            <button onClick={() => setSelectedTransaction(null)} className="w-full py-4 bg-slate-100 rounded-2xl font-black text-sm text-slate-600 active:bg-slate-200 transition-colors">ĐÓNG</button>
+          <div className="p-6 pb-12 flex gap-3">
+            <button onClick={() => setSelectedTransaction(null)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black text-sm text-slate-600 active:bg-slate-200 transition-colors">ĐÓNG</button>
+            <button
+              onClick={() => handleDeleteTransaction(selectedTransaction.id)}
+              className="px-6 py-4 bg-red-50 text-red-500 rounded-2xl font-black text-sm active:bg-red-100 transition-colors flex items-center justify-center"
+            >
+              <span className="material-icons-round">delete</span>
+            </button>
           </div>
         </div>
       )}
